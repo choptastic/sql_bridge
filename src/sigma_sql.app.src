@@ -1,0 +1,12 @@
+{application, sigma_sql,
+ [
+  {description, "An abstraction layer in front of SQL Databases."},
+  {vsn, "0.0.1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { db, []}},
+  {env, []}
+ ]}.
