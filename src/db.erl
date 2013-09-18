@@ -3,13 +3,14 @@
 
 -define(WARNING(QueryText,Msg), error_logger:info_msg("QUERY WARNING: ~p~n~nQuery:~n~p~n~n",[Msg,QueryText])).
 
--define(TYPE, application:get_env(sigma_sql, type, mysql)).
--define(HOST, application:get_env(sigma_sql, host, "127.0.0.1")).
--define(PORT, application:get_env(sigma_sql, port, 3306)).
--define(USER, application:get_env(sigma_sql, user, "root")).
--define(PASS, application:get_env(sigma_sql, pass, "")).
--define(LOOKUP, application:get_env(sigma_sql, lookup, fun() -> throw({sigma_sql,undefined_lookup_method}) end )).
--define(CPP, application:get_env(sigma_sql, connections_per_pool, 10)).
+-define(ENV(Var, Def), (application:get_env(sigma_sql, Var, Def))).
+-define(TYPE, 	?ENV(type, mysql)).
+-define(HOST, 	?ENV(host, "127.0.0.1")).
+-define(PORT, 	?ENV(port, 3306)).
+-define(USER, 	?ENV(user, "root")).
+-define(PASS, 	?ENV(pass, "")).
+-define(LOOKUP, ?ENV(lookup, fun() -> throw({sigma_sql,undefined_lookup_method}) end )).
+-define(CPP,  	?ENV(connections_per_pool, 10)).
 
 %% does not currently do anything
 -define(AUTOGROW, application:get_env(sigma_sql, autogrow_pool, false)).
@@ -75,7 +76,7 @@ connect() ->
 -spec connect(db()) -> db().
 % @doc establishes a connection to the named database.
 connect(DB) when is_atom(DB) ->
-	emysql:add_pool(DB, ?CPP, ?USER, ?PASS, ?HOST, ?PORT, DB, utf8),
+	emysql:add_pool(DB, ?CPP, ?USER, ?PASS, ?HOST, ?PORT, atom_to_list(DB), utf8),
 	DB.
 
 -spec pl(Table :: table(), Proplist :: proplist()) -> insert_id() | update_id().
@@ -124,9 +125,9 @@ pli(Table,PropList) when is_atom(Table) ->
 	pli(atom_to_list(Table),PropList);
 pli(Table,InitPropList) ->
 	PropList = filter_fields(Table,InitPropList),
-	Sets = [atom_to_list(F) ++ "=" ++ encode(V) || {F,V} <- PropList],
-	Set = string:join(Sets,","),
-	SQL = "insert into " ++ Table ++ " set " ++ Set,
+	Sets = [[atom_to_list(F),"=",encode(V)] || {F,V} <- PropList],
+	Set = iolist_join(Sets,","),
+	SQL = ["insert into ",Table," set ",Set],
 	qi(SQL).
 
 %% Updates a row from the proplist based on the key `Table ++ "id"` in the Table
@@ -141,9 +142,9 @@ plu(Table,KeyField,InitPropList) when is_atom(Table) ->
 plu(Table,KeyField,InitPropList) ->
 	PropList = filter_fields(Table,InitPropList),
 	KeyValue = proplists:get_value(KeyField,PropList),
-	Sets = [atom_to_list(F) ++ "=" ++ encode(V) || {F,V} <- PropList,F /= KeyField],
-	Set = string:join(Sets,","),
-	SQL = "update " ++ Table ++ " set " ++ Set ++ " where " ++ atom_to_list(KeyField) ++ "=" ++ encode(KeyValue),
+	Sets = [ [atom_to_list(F),"=",encode(V)] || {F,V} <- PropList,F /= KeyField],
+	Set = iolist_join(Sets,","),
+	SQL = ["update ",Table," set ",Set," where ",atom_to_list(KeyField),"=",encode(KeyValue)],
 	q(SQL),
 	KeyValue.
 
@@ -174,26 +175,48 @@ tq(Q,ParamList) ->
 	Db = db(),
 	db_q(tuple,Db,Q,ParamList).
 
-
 format_result(Type,Res) ->
-	Res1 = sigma:deep_unbinary(mysql:get_result_rows(Res)),
+	Json = emysql_util:as_json(Res),
 	case Type of
 		list ->
-			Res1;
+			format_list_result(Json);
 		tuple ->
-			[list_to_tuple(R) || R<-Res1];
-		Other when Other==proplist;Other==dict -> 
-			Fields = mysql:get_result_field_info(Res),
-			Proplists = [format_proplist_result(R,Fields) || R<-Res1],
-			case Other of
-				proplist -> Proplists;
-				dict -> [dict:from_list(PL) || PL <- Proplists]
-			end	
+			format_tuple_result(Json);
+		proplist ->
+			format_proplist_result(Json);
+		dict ->
+			format_dict_result(Json)
 	end.
 
-format_proplist_result(Row,Fields) ->
-	FieldNames = [list_to_atom(binary_to_list(F)) || {_,F,_,_} <- Fields],
-	lists:zip(FieldNames,Row).
+format_value(null) ->
+	undefined;
+format_value(V) when is_binary(V) ->
+	binary_to_list(V);
+format_value(V) ->
+	V.
+
+format_key(K) when is_atom(K) ->
+	K;
+format_key(K) when is_binary(K) ->
+	format_key(binary_to_list(K));
+format_key(K) when is_list(K) ->
+	list_to_atom(K).
+
+format_list_result(Json) ->
+	[
+		[format_value(Value) || {_,Value} <- Row]
+	|| Row <- Json].
+
+format_tuple_result(Json) ->
+	[list_to_tuple(Row) || Row <- format_list_result(Json)].
+
+format_proplist_result(Json) ->
+	[
+		[{format_key(F), format_value(V)} || {F,V} <- Row]
+	|| Row <-Json].
+
+format_dict_result(Json) ->
+	[dict:from_list(PL) || PL <- format_proplist_result(Json)].
 
 %% Query from the specified Database pool (Db)
 %% This will connect to the specified Database Pool
@@ -201,20 +224,28 @@ format_proplist_result(Row,Fields) ->
 %% Type can also be atom 'insert' in which case, it'll return the insert value
 
 db_q(Type,Db,Q) ->
-	case mysql:fetch(Db,Q) of
-		{data, Res} ->
-			format_result(Type,Res);
-		{updated, Res} ->
-			case Type of
-				insert -> mysql:get_result_insert_id(Res);
-				_ -> mysql:get_result_affected_rows(Res)
-			end;
-		{error, {no_connection_in_pool,_}} ->
-			NewDB = connect(),
-			db_q(Type,NewDB,Q);
-		{error, Res} ->
-			{error, mysql:get_result_reason(Res)}
+	try 
+		Res = emysql:execute(Db,Q),
+		case emysql_util:result_type(Res) of
+			result ->
+				format_result(Type,Res);
+			ok ->
+				case Type of
+					insert -> emysql_util:insert_id(Res);
+					_ -> 	  emysql_util:affected_rows(Res)
+				end;
+			error ->
+				%% if no connection in pool available ->
+				%% 		NewDB = connect(),
+				%% 		db_q(Type,NewDB,Q);
+				{error, Res}
+		end
+	catch
+		exit:pool_not_found ->
+			connect(Db),
+			db_q(Type, Db, Q)
 	end.
+
 
 db_q(Type,Db,Q,ParamList) ->
 	NewQ = q_prep(Q,ParamList),
@@ -294,7 +325,7 @@ ffl(Q) ->
 table_fields(Table) when is_atom(Table) ->
 	table_fields(atom_to_list(Table));
 table_fields(Table) ->
-	[list_to_atom(F) || F <- db:ffl("describe " ++ Table)].
+	[list_to_atom(F) || F <- db:ffl(["describe ",Table])].
 
 %% Existance query, just returns true if the query returns anything other than an empty set
 %% QE = "Q Exists"
@@ -323,7 +354,7 @@ field(Table,Field,IDField,IDValue) when is_atom(Field) ->
 field(Table,Field,IDField,IDValue) when is_atom(IDField) ->
 	field(Table,Field,atom_to_list(IDField),IDValue);
 field(Table,Field,IDField,IDValue) ->
-	db:fffr("select " ++ Field ++ " from " ++ Table ++ " where " ++ IDField ++ "= ?",[IDValue]).
+	db:fffr(["select ",Field," from ",Table," where ",IDField,"= ?"],[IDValue]).
 
 %% This does the same as above, but uses Table ++ "id" for the idfield
 field(Table,Field,IDValue) when is_atom(Table) ->
@@ -342,7 +373,7 @@ delete(Table,KeyField,ID) when is_atom(Table) ->
 delete(Table,KeyField,ID) when is_atom(KeyField) ->
 	delete(Table,atom_to_list(KeyField),ID);
 delete(Table,KeyField,ID) ->
-	db:q("delete from " ++ Table ++ " where " ++ KeyField ++ "=?",[ID]).
+	db:q(["delete from ",Table," where ",KeyField,"=?"],[ID]).
 
 %%% Prepares a query with Parameters %%%%%%%%%%
 q_prep(Q,[]) ->
@@ -358,18 +389,18 @@ q_prep(Q,ParamList) ->
 	end.
 
 q_join([QFirstPart|[QSecondPart|QRest]],[FirstParam|OtherParam]) when is_list(QFirstPart);is_list(QSecondPart) ->
-	NewFirst = QFirstPart ++ encode(FirstParam) ++ QSecondPart,
+	NewFirst = [QFirstPart,encode(FirstParam),QSecondPart],
 	q_join([NewFirst|QRest],OtherParam);
 q_join([QFirstPart | [QRest]],[FirstParam | [] ]) when is_list(QFirstPart);is_list(QRest) ->
-	QFirstPart ++ FirstParam ++ QRest;
+	[QFirstPart,FirstParam,QRest];
 q_join([QFirstPart], []) ->
 	QFirstPart.
 
 %% Prelim Encoding, then does mysql encoding %%%
 %% primarily for the atoms true and false
-encode(true) -> "1";
-encode(false) -> "0";
-encode(Other) -> mysql:encode(Other).
+encode(true) -> <<"1">>;
+encode(false) -> <<"0">>;
+encode(Other) -> emysql_util:encode(Other).
 
 remove_wrapping_quotes(Str) ->
 	lists:reverse(tl(lists:reverse(tl(Str)))).
@@ -385,10 +416,11 @@ decode64(undefined) -> "";
 decode64(Data) ->
 	binary_to_term(base64:decode(Data)).
 
-%%%%%%%%%% Takes a list of items and encodes them for SQL then returns a comma-separated list of them
+%% Takes a list of items and encodes them for SQL then returns a
+%% comma-separated list of them
 encode_list(List) ->
 	NewList = [encode(X) || X<-List],
-	string:join(NewList,",").
+	iolist_join(NewList,",").
 
 
 dict_to_proplist(SrcDict,AcceptableFields) ->
@@ -401,6 +433,12 @@ dict_to_proplist(SrcDict,AcceptableFields) ->
 	FilteredDict = lists:foldl(DictFilterFoldFun,SrcDict,AcceptableFields),
 	dict:to_list(FilteredDict).
 
+iolist_join([], _) ->
+	[];
+iolist_join([H], _) ->
+	[H];
+iolist_join([H|T], Delimiter) ->
+	[H,Delimiter|iolist_join(T, Delimiter)].
 
 to_bool(false) -> 	false;
 to_bool(0) -> 		false;
@@ -416,4 +454,4 @@ offset(PerPage, Page) when Page > 0 ->
 
 limit_clause(PerPage, Page) ->
 	Offset = offset(PerPage, Page),
-	" limit " ++ wf:to_list(Offset) ++ ", " ++ wf:to_list(PerPage).
+	[" limit ",integer_to_list(Offset),", ",integer_to_list(PerPage)].
