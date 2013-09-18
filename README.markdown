@@ -76,15 +76,15 @@ entirely obvious on a cursory glance what a function returns (for example:
 
 But you'll learn common shortcuts:
 
-`q` -> query
-`t` -> tuple
-`d` -> dict
-`l` -> list
-`pl` -> proplist
-`ff` -> first field
-`fr` -> first record
-`i` -> insert
-`u` -> update
+  * `q` -> query
+  * `t` -> tuple
+  * `d` -> dict
+  * `l` -> list
+  * `pl` -> proplist
+  * `ff` -> first field
+  * `fr` -> first record
+  * `i` -> insert
+  * `u` -> update
 
 #### Prepared Statements?
 
