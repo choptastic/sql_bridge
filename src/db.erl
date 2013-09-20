@@ -323,10 +323,14 @@ ffl(Q,ParamList) ->
 ffl(Q) ->
     ffl(Q,[]).
 
+%% deprecate this. Use "fields"
 table_fields(Table) when is_atom(Table) ->
     table_fields(atom_to_list(Table));
 table_fields(Table) ->
     [list_to_atom(F) || F <- db:ffl(["describe ",Table])].
+
+fields(Table) ->
+    table_fields(Table).
 
 %% Existance query, just returns true if the query returns anything other than an empty set
 %% QE = "Q Exists"
