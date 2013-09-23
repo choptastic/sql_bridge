@@ -4,7 +4,7 @@
 
 -define(WARNING(QueryText,Msg), error_logger:info_msg("QUERY WARNING: ~p~n~nQuery:~n~p~n~n",[Msg,QueryText])).
 
--define(ENV(Var, Def), (application:get_env(sigma_sql, Var, Def))).
+-define(ENV(Var, Def), (get_env(Var, Def))).
 -define(TYPE,   ?ENV(type, mysql)).
 -define(HOST,   ?ENV(host, "127.0.0.1")).
 -define(PORT,   ?ENV(port, 3306)).
@@ -25,6 +25,13 @@
 -type insert_id()   :: term().
 -type update_id()   :: term().
 -type proplist()    :: {atom() | value()}.
+
+-spec get_env(Var :: atom(), Def :: term()) -> term().
+get_env(Var, Def) ->
+    case application:get_env(sigma_sql, Var) of
+        undefined -> Def;
+        {ok, Val} -> Val
+    end.
 
 -spec lookup() -> db().
 % @doc Checks the configuration for how we determine the database we're using
