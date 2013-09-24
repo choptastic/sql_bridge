@@ -215,6 +215,7 @@ they only return a single row. They all start with `fr` for "first record"
 	```erlang
 	> db:ffl("select playerid from player where alive=? or class=?",[true,wizard]).
     [1,2,3,5]
+	```
 
   * `db:qexists`: Returns `true` or `false` depending on whether or not the
     query returns any records.
