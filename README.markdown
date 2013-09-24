@@ -124,9 +124,127 @@ it's an update.
 
 ### Functions
 
+#### One more convention before showing each function:
+
+Almost all query functions in SigmaSQL take one or two parameters.
+
+  * 1 Argument: the query will be executed as-is. (e.g. `db:q("select * from
+    whatever")`)
+  * 2 Arguments: Argument two should be a list of arguments that correspond to
+    and will replace question marks (`?`) within the query itself in order.
+    (e.g. `db:q("select * from whatever where field1=? or field1=?", [SomeValue,
+    SomeOtherValue])`)
+
+#### Table Structure for our examples
+
+For our example, we're going to have a table called `player`:
+
+```
++----------+-----------------------------------+------+-----+---------+----------------+
+| Field    | Type                              | Null | Key | Default | Extra          |
++----------+-----------------------------------+------+-----+---------+----------------+
+| playerid | int(10) unsigned                  | NO   | PRI | NULL    | auto_increment |
+| name     | varchar(40)                       | YES  |     | NULL    |                |
+| race     | enum('dwarf','orc','elf')         | YES  |     | NULL    |                |
+| class    | enum('wizard','archer','bruiser') | YES  |     | NULL    |                |
+| level    | int(10) unsigned                  | YES  |     | 1       |                |
+| alive    | tinyint(1)                        | NO   |     | 1       |                |
++----------+-----------------------------------+------+-----+---------+----------------+
+```
+
 #### Select Queries
 
+##### Multi-record Queries
+
+  * `db:q`: The most basic query. Will return a list of rows formatted as
+    simple lists.
+
+    ```erlang
+	> db:q("select playerid, name from player where race=?", ["elf"]).
+    [[2,"Evan"],
+     [3,"Marc"]]
+	```
+
+  * `db:tq`: Like `db:q` except returns a list of rows formatted as tuples.
+    ```erlang
+
+	> db:tq("select playerid, name from player where race=?", ["elf"]).
+    [{2,"Evan"},
+     {3,"Marc"}]
+	```
+
+  * `db:plq`: Like `db:q` except returns a list of proplists, with the keys of
+    which are atomized versions of the database field names:
+
+	```erlang
+	> db:plq("select name, race, level from player where alive=?",[false]).
+	[[{name,"Rusty"},
+      {race,"dwarf"},
+      {level,35}],
+     [{name,"Justin"},
+      {race,"orc"},
+      {level,15}]]
+	```
+
+  * `db:dq`: Like `db:plq`, except returns a list of Erlang `dicts` with the
+    keys again being atomized versions of the field names.
+
+##### Single-record Queries
+
+Single-record queries correspond directly to their multi-record queries, except
+they only return a single row. They all start with `fr` for "first record"
+
+  * `db:fr`: Like `db:q` (Returns a list)
+  * `db:tfr`: Like `db:tq` (Returns a tuple)
+  * `db:plfr`: Like `db:plq` (Returns a proplist)
+  * `db:dfr`: Like `db:dq` (Returns a dict)
+
+##### Other convenience queries
+
+  * `db:fffr`: (F)irst (F)ield of (F)irst (R)ecord. Returns the first field of
+    the first record returned.
+
+    ```erlang
+    > db:fffr("select count(*) from player where class=?",[wizard]).
+    2
+    ```
+
+  * `db:ffl`: (F)irst (F)ield (L)ist. Returns a list of the first field from
+    each row.
+
+	```erlang
+	> db:ffl("select playerid from player where alive=? or class=?",[true,wizard]).
+    [1,2,3,5]
+
+  * `db:qexists`: Returns `true` or `false` depending on whether or not the
+    query returns any records.
+
+	```erlang
+	> db:qexists("select playerid from player where playerid=?",[999]).
+	false
+	```
+
+  * `db:field(Table, Field, IDValue)`: Returns the value of the field `Field` from table `Table`, where the TableID value is `IDValue`.
+
+	```erlang
+	> db:field(player, race, 1).
+	"dwarf"
+	```
+	The above is the equivilant to `db:fffr("select race from player where playerid=1")`
+
+  * `db:field(Table, Field, IDField, IDValue)`
+
+	Like `db:field/3`, except you get to specify which field you're querying for instead of assuming `Table ++ "id"` as the ID field.
+
+  * `db:fields(Table)`: Returns a list of the names of the fields of the named `Table`
+
+	```erlang
+	> db:fields(player).
+	[playerid, name, race, class, level, alive]
+
 #### Insert, Update, Delete Queries
+
+#### Misc Utilities
 
 ## About
 
