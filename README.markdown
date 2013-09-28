@@ -245,7 +245,39 @@ they only return a single row. They all start with `fr` for "first record"
 
 #### Insert, Update, Delete Queries
 
+### Insert
+
+  * `db:qi`: Runs the specified query and returns the `insert_id`
+
+### Update
+
+### Delete
+
+  * `db:delete(Table, ID)`
+
+  * `db:delete(Table, Field, ID)`
+
 #### Misc Utilities
+
+  * `db:encode(Term)`: Safely escapes a data for MySQL insertion. Will encode
+    the atoms `true` and `false` as `1` and `0` respectively.
+ 
+  * `db:encode_list(List)`: Takes a list of terms and safely encodes them for
+    mysql interaction, separating them with commas. 
+
+  * `db:encode64(Term)`
+
+  * `db:decode64(Term)`: Encodes and decodes any Erlang term to base64.
+
+  * `db:limit_clause(PerPage, Page)`: When you're doing a query that needs
+    pagination, sometimes you just don't want to deal with figuring out the
+    limit clause's offset and length.  In this case, you can build a simple limit
+    clause for MySQL by passing this function which page you want to show (start at
+    page 1), and how many items you per page you want to show. It will do the
+    offset calculation for you and return a limit clause that can be inserted into
+    the query.
+
+	
 
 ## About
 
