@@ -16,13 +16,13 @@ setting, updating data from proplists, and more.
 
    * A process tracks which database it's connecting to, grabbing any of the
      available database pools. No need to identify a specific pool with
-	 requests.
+     requests.
    * Connections are made automatically when the first query is attempted
    * A process determines which database to connect to via the `sigma_sql`
      application variable `lookup`.
    * This is used commonly to simplify the process of running a single codebase
      which connects to different database for different users or for different
-	 host headers.
+     host headers.
 
 ## Configuration
 
@@ -160,31 +160,31 @@ For our example, we're going to have a table called `player`:
     simple lists.
 
     ```erlang
-	> db:q("select playerid, name from player where race=?", ["elf"]).
+    > db:q("select playerid, name from player where race=?", ["elf"]).
     [[2,"Evan"],
      [3,"Marc"]]
-	```
+    ```
 
   * `db:tq`: Like `db:q` except returns a list of rows formatted as tuples.
     ```erlang
 
-	> db:tq("select playerid, name from player where race=?", ["elf"]).
+    > db:tq("select playerid, name from player where race=?", ["elf"]).
     [{2,"Evan"},
      {3,"Marc"}]
-	```
+    ```
 
   * `db:plq`: Like `db:q` except returns a list of proplists, with the keys of
     which are atomized versions of the database field names:
 
-	```erlang
-	> db:plq("select name, race, level from player where alive=?",[false]).
-	[[{name,"Rusty"},
+    ```erlang
+    > db:plq("select name, race, level from player where alive=?",[false]).
+    [[{name,"Rusty"},
       {race,"dwarf"},
       {level,35}],
      [{name,"Justin"},
       {race,"orc"},
       {level,15}]]
-	```
+    ```
 
   * `db:dq`: Like `db:plq`, except returns a list of Erlang `dicts` with the
     keys again being atomized versions of the field names.
@@ -212,36 +212,36 @@ they only return a single row. They all start with `fr` for "first record"
   * `db:ffl`: (F)irst (F)ield (L)ist. Returns a list of the first field from
     each row.
 
-	```erlang
-	> db:ffl("select playerid from player where alive=? or class=?",[true,wizard]).
+    ```erlang
+    > db:ffl("select playerid from player where alive=? or class=?",[true,wizard]).
     [1,2,3,5]
-	```
+    ```
 
   * `db:qexists`: Returns `true` or `false` depending on whether or not the
     query returns any records.
 
-	```erlang
-	> db:qexists("select playerid from player where playerid=?",[999]).
-	false
-	```
+    ```erlang
+    > db:qexists("select playerid from player where playerid=?",[999]).
+    false
+    ```
 
   * `db:field(Table, Field, IDValue)`: Returns the value of the field `Field` from table `Table`, where the TableID value is `IDValue`.
 
-	```erlang
-	> db:field(player, race, 1).
-	"dwarf"
-	```
-	The above is the equivilant to `db:fffr("select race from player where playerid=1")`
+    ```erlang
+    > db:field(player, race, 1).
+    "dwarf"
+    ```
+    The above is the equivilant to `db:fffr("select race from player where playerid=1")`
 
   * `db:field(Table, Field, IDField, IDValue)`
 
-	Like `db:field/3`, except you get to specify which field you're querying for instead of assuming `Table ++ "id"` as the ID field.
+    Like `db:field/3`, except you get to specify which field you're querying for instead of assuming `Table ++ "id"` as the ID field.
 
   * `db:fields(Table)`: Returns a list of the names of the fields of the named `Table`
 
-	```erlang
-	> db:fields(player).
-	[playerid, name, race, class, level, alive]
+    ```erlang
+    > db:fields(player).
+    [playerid, name, race, class, level, alive]
 
 #### Insert, Update, Delete Queries
 
@@ -251,11 +251,26 @@ they only return a single row. They all start with `fr` for "first record"
 
 ### Update
 
+  * `db:qu`: Run the specified query and returns the number of affected rows.
+
+### Update or Delete from a Proplist
+
+  * `db:pl(Table, Keyfield, Proplist)`: Run an update or insert query on the
+    Table provided with the specified Proplist as the row data. If the value in
+    `Proplist` associated with the Key `Keyfield` is a zero, or is undefined, then
+    an insert query is performed. Otherwise, an update query is performed.
+    Regardless of insert or update method, the return value is the value of the
+    `Keyfield` - if insert, then it returns the new `insert_id`, and if update, the
+    value associated with the `Keyfield` from `Proplist`.
+
+  * `db:pl(Table, Proplist)`: Like `db:pl(Table, Keyfield, Proplist)` except
+    `Keyfield` is deduced with `list_to_atom(atom_to_list(Table) ++ "id")`
+
 ### Delete
 
-  * `db:delete(Table, ID)`
+  * `db:delete(Table, ID)`: Delete records from a table.
 
-  * `db:delete(Table, Field, ID)`
+  * `db:delete(Table, Field, ID)`: Delete records from a table.
 
 #### Misc Utilities
 
@@ -277,7 +292,7 @@ they only return a single row. They all start with `fr` for "first record"
     offset calculation for you and return a limit clause that can be inserted into
     the query.
 
-	
+    
 
 ## About
 

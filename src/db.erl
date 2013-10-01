@@ -269,6 +269,14 @@ qi(Q,ParamList) ->
     Db = db(),
     db_q(insert,Db,Q,ParamList).
 
+qu(Q) ->
+    Db = db(),
+    db_q(update, Db, Q).
+
+qu(Q, ParamList) ->
+    Db = db(),
+    db_q(update, Db, Q, ParamList).
+
 %% Query the database and return the relevant information
 %% If a select query, it returns all the rows
 %% If an update or Insert query, it returns the number of rows affected
