@@ -225,19 +225,30 @@ they only return a single row. They all start with `fr` for "first record"
     false
     ```
 
-  * `db:field(Table, Field, IDValue)`: Returns the value of the field `Field` from table `Table`, where the TableID value is `IDValue`.
+  * `db:exists(Table, IDField, IDValue)`: Returns true or false depending on
+    whether or not a record in `Table` exists where the specified `IDField` has
+	the value `IDValue`.
+
+  * `db:exists(Table, IDValue)`: Shortcut for `db:exists(Table, Table ++ "id",
+    IDValue)`
+
+  * `db:field(Table, Field, IDValue)`: Returns the value of the field `Field`
+    from table `Table`, where the TableID value is `IDValue`.
 
     ```erlang
     > db:field(player, race, 1).
     "dwarf"
     ```
-    The above is the equivilant to `db:fffr("select race from player where playerid=1")`
+	The above is the equivilant to `db:fffr("select race from player where
+	playerid=1")`
 
   * `db:field(Table, Field, IDField, IDValue)`
 
-    Like `db:field/3`, except you get to specify which field you're querying for instead of assuming `Table ++ "id"` as the ID field.
+	Like `db:field/3`, except you get to specify which field you're querying
+	for instead of assuming `Table ++ "id"` as the ID field.
 
-  * `db:fields(Table)`: Returns a list of the names of the fields of the named `Table`
+  * `db:fields(Table)`: Returns a list of the names of the fields of the named
+    `Table`
 
     ```erlang
     > db:fields(player).

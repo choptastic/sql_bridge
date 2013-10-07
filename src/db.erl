@@ -361,8 +361,18 @@ qexists(Q,ParamList) ->
             ?WARNING({Q,ParamList},"qexists returned more than one record. Recommend returning one record for performance."),
             true
     end.
-            
-    
+
+exists(Table, IDValue) when is_atom(Table) ->
+    exists(atom_to_list(Table), IDValue);
+exists(Table, IDValue) when is_list(Table) ->
+    exists(Table, list_to_atom(Table) ++ "id", IDValue).
+
+exists(Table, KeyField, IDValue) ->
+    case field(Table, KeyField, KeyField, IDValue) of
+        not_found -> false;
+        _ -> true
+    end.
+
 %% retrieves a field value from a table
 %% ie: Select 'Field' from 'Table' where 'IDField'='IDValue'
 %% This should only be called from the db_ modules.  Never in the page.
