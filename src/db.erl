@@ -106,7 +106,7 @@ pl(Table,KeyField,PropList) when is_list(KeyField) ->
 pl(Table,KeyField,PropList) when is_list(Table) ->
     KeyValue = proplists:get_value(KeyField,PropList,0),
     case KeyValue of
-        Zero when Zero==0;Zero=="0";Zero==undefined -> 
+        Zero when Zero==0;Zero=="0";Zero==undefined;Zero=="" -> 
             pli(Table,pl:delete(PropList,KeyField));
         _ -> 
             plu(Table,KeyField,PropList)
