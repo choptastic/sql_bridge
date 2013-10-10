@@ -369,7 +369,7 @@ qexists(Q,ParamList) ->
 exists(Table, IDValue) when is_atom(Table) ->
     exists(atom_to_list(Table), IDValue);
 exists(Table, IDValue) when is_list(Table) ->
-    exists(Table, list_to_atom(Table) ++ "id", IDValue).
+    exists(Table, Table ++ "id", IDValue).
 
 exists(Table, KeyField, IDValue) ->
     case field(Table, KeyField, KeyField, IDValue) of
