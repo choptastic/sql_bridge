@@ -18,6 +18,8 @@
 
 -define(DB, sigma_sql_cached_db).
 
+-type sql()         :: iolist().
+-type sql_result()  :: any().
 -type db()          :: atom().
 -type table()       :: string() | atom().
 -type field()       :: string() | atom().
@@ -25,6 +27,7 @@
 -type insert_id()   :: term().
 -type update_id()   :: term().
 -type proplist()    :: {atom() | value()}.
+-type return_type() :: dict | list | proplist | tuple.
 
 -spec get_env(Var :: atom(), Def :: term()) -> term().
 get_env(Var, Def) ->
@@ -127,8 +130,58 @@ filter_fields(Table,PropList) ->
     TableFields = table_fields(Table),
     [{K,V} || {K,V} <- PropList,lists:member(atomize(K),TableFields)].
 
-%% Inserts a proplist into the table
+-spec q(Q :: sql()) -> [list()].
+%% @doc Run the SQL query `Q` and return a list of lists, with each inner list
+%% representing one record in the return set.
+q(Q) ->
+    Db = db(),
+    db_q(list,Db,Q).
+
+-spec q(Q :: sql(), ParamList :: [value()]) -> [list()].
+%% @doc Run the SQL query `Q`, with the the values of `ParamList` safely
+%% injected into the query replacing any instances of question marks (`?`),
+%% with each inner list representing one record in the return set (same as q/1).
+q(Q,ParamList) ->
+    Db = db(),
+    db_q(list,Db,Q,ParamList).
+
+-spec dq(Q :: sql()) -> [dict()].
+%% @doc Same as q/1, but returns a list of dicts.
+dq(Q) ->
+    Db = db(),
+    db_q(dict,Db,Q).
+
+-spec dq(Q :: sql(), ParamList :: [value()]) -> [dict()].
+%% @doc Same as q/2, but returns a list of dicts
+dq(Q,ParamList) ->
+    Db = db(),
+    db_q(dict,Db,Q,ParamList).
+
+-spec tq(Q :: sql()) -> [tuple()].
+%% @doc Same as q/1, but returns a list of tuples
+tq(Q) ->
+    Db = db(),
+    db_q(tuple,Db,Q).
+
+-spec tq(Q :: sql(), ParamList :: [value()]) -> [tuple()].
+%% @doc Same as q/2, but returns a list of tuples
+tq(Q,ParamList) ->
+    Db = db(),
+    db_q(tuple,Db,Q,ParamList).
+
+-spec plq(Q :: sql()) -> [proplist()].
+%% @doc Same as q/1, but returns a list of proplists
+plq(Q) ->
+    Db = db(), db_q(proplist,Db,Q).
+
+-spec plq(Q :: sql(), ParamList :: [value()]) -> [proplist()].
+%% @doc Same as q/2, but returns a list of proplists
+plq(Q,ParamList) ->
+    Db = db(),
+    db_q(proplist,Db,Q,ParamList).
+
 -spec pli(Table :: table(), PropList :: proplist()) -> insert_id().
+%% @doc Inserts a proplist into the table
 pli(Table,PropList) when is_atom(Table) ->
     pli(atom_to_list(Table),PropList);
 pli(Table,InitPropList) ->
@@ -138,13 +191,16 @@ pli(Table,InitPropList) ->
     SQL = ["insert into ",Table," set ",Set],
     qi(SQL).
 
-%% Updates a row from the proplist based on the key `Table ++ "id"` in the Table
+-spec plu(Table :: table(), PropList :: proplist()) -> update_id().
+%% @doc Updates a row from the proplist based on the key `Table ++ "id"` in the Table
 plu(Table,PropList) when is_atom(Table) ->
     plu(atom_to_list(Table),PropList);
 plu(Table,PropList) ->
     KeyField = list_to_atom(Table ++ "id"),
     plu(Table,KeyField,PropList).
 
+-spec plu(Table :: table(), KeyField :: field(), PropList :: proplist()) -> update_id().
+%% @doc Update a row from proplist based on the Keyfield `Keyfield` on provided Table
 plu(Table,KeyField,InitPropList) when is_atom(Table) ->
     plu(atom_to_list(Table),KeyField,InitPropList);
 plu(Table,KeyField,InitPropList) ->
@@ -156,81 +212,12 @@ plu(Table,KeyField,InitPropList) ->
     q(SQL),
     KeyValue.
 
-%% proplist query
-plq(Q) ->
-    Db = db(),
-    db_q(proplist,Db,Q).
-
-plq(Q,ParamList) ->
-    Db = db(),
-    db_q(proplist,Db,Q,ParamList).
-
-%% dict query
-dq(Q) ->
-    Db = db(),
-    db_q(dict,Db,Q).
-
-dq(Q,ParamList) ->
-    Db = db(),
-    db_q(dict,Db,Q,ParamList).
-
-%% tuple query
-tq(Q) ->
-    Db = db(),
-    db_q(tuple,Db,Q).
-
-tq(Q,ParamList) ->
-    Db = db(),
-    db_q(tuple,Db,Q,ParamList).
-
-format_result(Type,Res) ->
-    Json = emysql_util:as_json(Res),
-    case Type of
-        list ->
-            format_list_result(Json);
-        tuple ->
-            format_tuple_result(Json);
-        proplist ->
-            format_proplist_result(Json);
-        dict ->
-            format_dict_result(Json)
-    end.
-
-format_value(null) ->
-    undefined;
-format_value(V) when is_binary(V) ->
-    binary_to_list(V);
-format_value(V) ->
-    V.
-
-format_key(K) when is_atom(K) ->
-    K;
-format_key(K) when is_binary(K) ->
-    format_key(binary_to_list(K));
-format_key(K) when is_list(K) ->
-    list_to_atom(K).
-
-format_list_result(Json) ->
-    [
-        [format_value(Value) || {_,Value} <- Row]
-    || Row <- Json].
-
-format_tuple_result(Json) ->
-    [list_to_tuple(Row) || Row <- format_list_result(Json)].
-
-format_proplist_result(Json) ->
-    [
-        [{format_key(F), format_value(V)} || {F,V} <- Row]
-    || Row <-Json].
-
-format_dict_result(Json) ->
-    [dict:from_list(PL) || PL <- format_proplist_result(Json)].
-
-%% Query from the specified Database pool (Db)
-%% This will connect to the specified Database Pool
-%% Type must be atoms: proplist, dict, list, or tuple
+-spec db_q(Type :: return_type(), Db :: db(), Q :: sql()) ->  insert_id() 
+                                                            | update_id()
+                                                            | [list() | dict() | tuple() | proplist()].
+%% @doc Query from the specified Database pool (Db) This will connect to the
+%% specified Database Pool Type must be atoms: proplist, dict, list, or tuple
 %% Type can also be atom 'insert' in which case, it'll return the insert value
-
 db_q(Type,Db,Q) ->
     try 
         Res = emysql:execute(Db,Q),
@@ -254,10 +241,64 @@ db_q(Type,Db,Q) ->
             db_q(Type, Db, Q)
     end.
 
+-spec db_q(Type :: return_type(), Db :: db(),
+           Q :: sql(), ParamList :: [value()]) ->   insert_id() 
+                                                  | update_id()
+                                                  | [list() | dict() | tuple() | proplist()].
 
 db_q(Type,Db,Q,ParamList) ->
     NewQ = q_prep(Q,ParamList),
     db_q(Type,Db,NewQ).
+
+-spec format_result(Type :: return_type(), Res :: sql_result()) ->   list()
+                                                                   | dict()
+                                                                   | tuple()
+                                                                   | proplist().
+format_result(Type,Res) ->
+    Json = emysql_util:as_json(Res),
+    case Type of
+        list ->
+            format_list_result(Json);
+        tuple ->
+            format_tuple_result(Json);
+        proplist ->
+            format_proplist_result(Json);
+        dict ->
+            format_dict_result(Json)
+    end.
+
+-spec format_value(V :: term()) -> undefined | string() | any().
+format_value(null) ->
+    undefined;
+format_value(V) when is_binary(V) ->
+    binary_to_list(V);
+format_value(V) ->
+    V.
+
+-spec format_key(K :: field()) -> atom().
+format_key(K) when is_atom(K) ->
+    K;
+format_key(K) when is_binary(K) ->
+    format_key(binary_to_list(K));
+format_key(K) when is_list(K) ->
+    list_to_atom(K).
+
+format_list_result(Json) ->
+    [
+        [format_value(Value) || {_,Value} <- Row]
+    || Row <- Json].
+
+format_tuple_result(Json) ->
+    [list_to_tuple(Row) || Row <- format_list_result(Json)].
+
+format_proplist_result(Json) ->
+    [
+        [{format_key(F), format_value(V)} || {F,V} <- Row]
+    || Row <-Json].
+
+format_dict_result(Json) ->
+    [dict:from_list(PL) || PL <- format_proplist_result(Json)].
+
 
 %%  A special Query function just for inserting.
 %%  Inserts the record(s) and returns the insert_id
@@ -276,17 +317,6 @@ qu(Q) ->
 qu(Q, ParamList) ->
     Db = db(),
     db_q(update, Db, Q, ParamList).
-
-%% Query the database and return the relevant information
-%% If a select query, it returns all the rows
-%% If an update or Insert query, it returns the number of rows affected
-q(Q) ->
-    Db = db(),
-    db_q(list,Db,Q).
-
-q(Q,ParamList) ->
-    Db = db(),
-    db_q(list,Db,Q,ParamList).
 
 
 %% fr = First Record
