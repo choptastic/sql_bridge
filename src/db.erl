@@ -235,6 +235,7 @@ db_q(Type,Db,Q) ->
                     _ ->      emysql_util:affected_rows(Res)
                 end;
             error ->
+                error_logger:info_msg("Error in SQL: ~s~nRes: ~p~n",[Q, Res]),
                 %% if no connection in pool available ->
                 %%      NewDB = connect(),
                 %%      db_q(Type,NewDB,Q);
