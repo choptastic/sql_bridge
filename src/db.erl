@@ -27,6 +27,7 @@
 -type insert_id()   :: term().
 -type update_id()   :: term().
 -type proplist()    :: {atom() | value()}.
+-type json()        :: list().
 -type return_type() :: dict | list | proplist | tuple.
 
 -spec get_env(Var :: atom(), Def :: term()) -> term().
@@ -287,43 +288,50 @@ format_key(K) when is_binary(K) ->
 format_key(K) when is_list(K) ->
     list_to_atom(K).
 
+-spec format_list_result(Json :: json()) -> [list()].
 format_list_result(Json) ->
     [
         [format_value(Value) || {_,Value} <- Row]
     || Row <- Json].
 
+-spec format_tuple_result(Json :: json()) -> [tuple()].
 format_tuple_result(Json) ->
     [list_to_tuple(Row) || Row <- format_list_result(Json)].
 
+-spec format_proplist_result(Json :: json()) -> [proplist()].
 format_proplist_result(Json) ->
     [
         [{format_key(F), format_value(V)} || {F,V} <- Row]
     || Row <-Json].
 
+-spec format_dict_result(Json :: json()) -> [dict()].
 format_dict_result(Json) ->
     [dict:from_list(PL) || PL <- format_proplist_result(Json)].
 
-
-%%  A special Query function just for inserting.
-%%  Inserts the record(s) and returns the insert_id
+-spec qi(Q :: sql()) -> insert_id().
+%% @doc A special Query function just for inserting.
+%% Inserts the record(s) and returns the insert_id
 qi(Q) ->
     Db = db(),
     db_q(insert,Db,Q).
 
+-spec qi(Q :: sql(), ParamList :: [value()]) -> insert_id().
 qi(Q,ParamList) ->
     Db = db(),
     db_q(insert,Db,Q,ParamList).
 
+-spec qu(Q :: sql()) -> update_id().
 qu(Q) ->
     Db = db(),
     db_q(update, Db, Q).
 
+-spec qu(Q :: sql(), ParamList :: [value()]) -> update_id().
 qu(Q, ParamList) ->
     Db = db(),
     db_q(update, Db, Q, ParamList).
 
-
-%% fr = First Record
+-spec plfr(Q :: sql(), ParamList :: [value()]) -> proplist() | not_found.
+%% @doc fr = First Record
 plfr(Q,ParamList) ->
     case plq(Q,ParamList) of
         [] -> not_found;
@@ -331,6 +339,7 @@ plfr(Q,ParamList) ->
         [First|_] -> First
     end.
 
+-spec plfr(Q :: sql()) -> proplist() | not_found.
 plfr(Q) ->
     plfr(Q,[]).
 
