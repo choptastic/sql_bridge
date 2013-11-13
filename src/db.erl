@@ -251,7 +251,7 @@ db_q(Type,Db,Q) ->
            Q :: sql(), ParamList :: [value()]) ->   insert_id() 
                                                   | update_id()
                                                   | [list() | dict() | tuple() | proplist()].
-
+%% @doc Same as db_q/3, but ParamList is safely inserted into the Query
 db_q(Type,Db,Q,ParamList) ->
     NewQ = q_prep(Q,ParamList),
     db_q(Type,Db,NewQ).
@@ -260,20 +260,24 @@ db_q(Type,Db,Q,ParamList) ->
                                                                    | dict()
                                                                    | tuple()
                                                                    | proplist().
+%% @doc Format the results from emysql as a list of Types
 format_result(Type,Res) ->
-    Json = emysql_util:as_json(Res),
-    case Type of
-        list ->
-            format_list_result(Json);
-        tuple ->
-            format_tuple_result(Json);
-        proplist ->
-            format_proplist_result(Json);
-        dict ->
-            format_dict_result(Json)
-    end.
+Json = emysql_util:as_json(Res),
+case Type of
+list ->
+format_list_result(Json);
+tuple ->
+format_tuple_result(Json);
+proplist ->
+format_proplist_result(Json);
+dict ->
+format_dict_result(Json)
+end.
 
 -spec format_value(V :: term()) -> undefined | string() | any().
+%% @doc Stringifies values from the database if the returned value is a binary,
+%% otherwise, leaves it be (so numbers are returned as their respective
+%% numbers, rather than being converted to strings).
 format_value(null) ->
     undefined;
 format_value(V) when is_binary(V) ->
@@ -282,6 +286,7 @@ format_value(V) ->
     V.
 
 -spec format_key(K :: field()) -> atom().
+%% @doc Normalize field values into atoms
 format_key(K) when is_atom(K) ->
     K;
 format_key(K) when is_binary(K) ->
@@ -344,9 +349,11 @@ plfr(Q,ParamList) ->
 plfr(Q) ->
     plfr(Q,[]).
 
+-spec tfr(Q :: sql()) -> tuple() | not_found.
 tfr(Q) ->
     tfr(Q,[]).
 
+-spec tfr(Q :: sql(), ParamList :: [value()]) -> tuple() | not_found.
 tfr(Q,ParamList) ->
     case tq(Q,ParamList) of
         [] -> not_found;
@@ -355,6 +362,7 @@ tfr(Q,ParamList) ->
     end.
 
 %% fr = First Record
+-spec fr(Q :: sql(), ParamList :: [value()]) -> list() | not_found.
 fr(Q,ParamList) ->
     case q(Q,ParamList) of
         [] -> not_found;
@@ -362,41 +370,50 @@ fr(Q,ParamList) ->
         [First|_] -> First
     end.
 
+-spec fr(Q :: sql()) -> list() | not_found.
 fr(Q) ->
     fr(Q,[]).
 
-%% fffr = First Field of First record
+-spec fffr(Q :: sql(), ParamList :: [value()]) -> string() | integer() | not_found.
+%% @doc Get First Field of First record
 fffr(Q,ParamList) ->
     case fr(Q,ParamList) of
         not_found -> not_found;
         [First|_] -> First
     end.
 
+-spec fffr(Q :: sql()) -> string() | integer() | not_found.
 fffr(Q) ->
     fffr(Q,[]).
 
 %% First Field List
+-spec ffl(Q :: sql(), ParamList :: [value()]) -> [string() | integer()].
 ffl(Q,ParamList) ->
     [First || [First | _ ] <- db:q(Q,ParamList)].
 
+-spec ffl(Q :: sql()) -> [string() | integer()].
 ffl(Q) ->
     ffl(Q,[]).
 
+-spec table_fields(Table :: table()) -> [atom()].
 %% deprecate this. Use "fields"
 table_fields(Table) when is_atom(Table) ->
     table_fields(atom_to_list(Table));
 table_fields(Table) ->
     [list_to_atom(F) || F <- db:ffl(["describe ",Table])].
 
+-spec fields(Table :: table()) -> [atom()].
 fields(Table) ->
     table_fields(Table).
 
-%% Existance query, just returns true if the query returns anything other than an empty set
-%% QE = "Q Exists"
+-spec qexists(Q :: sql()) -> boolean().
+%% @doc Existance query, just returns true if the query Q returns anything
+%% other than an empty set.
 %% TODO: Check for "limit" clause and add? Or rely on user.
 qexists(Q) ->
     qexists(Q,[]).
 
+-spec qexists(Q :: sql(), ParamList :: [value()]) -> boolean().
 qexists(Q,ParamList) ->
     case q(Q,ParamList) of
         [] -> false;
@@ -406,11 +423,15 @@ qexists(Q,ParamList) ->
             true
     end.
 
+-spec exists(Table :: table(), IDValue :: value()) -> boolean().
+%% @doc Returns true if Table has a record representing Key Value IDValue
 exists(Table, IDValue) when is_atom(Table) ->
     exists(atom_to_list(Table), IDValue);
 exists(Table, IDValue) when is_list(Table) ->
     exists(Table, Table ++ "id", IDValue).
 
+-spec exists(Table :: table(), KeyField :: field(), IDValue :: value()) -> boolean().
+%% @doc Returns true if Table has a record where KeyField = IDValue
 exists(Table, KeyField, IDValue) ->
     case field(Table, KeyField, KeyField, IDValue) of
         not_found -> false;
