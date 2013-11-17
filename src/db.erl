@@ -438,10 +438,11 @@ exists(Table, KeyField, IDValue) ->
         _ -> true
     end.
 
-%% retrieves a field value from a table
-%% ie: Select 'Field' from 'Table' where 'IDField'='IDValue'
-%% This should only be called from the db_ modules.  Never in the page.
-%% It's not a security thing, just a convention thing
+-spec field(Table :: table(), Field :: field(), IDField :: field(), IDValue :: value()) -> value() | not_found.
+%% @doc retrieves the value of Field from Table where the value of IDField ==
+%% IDValue (e.g.: Select 'Field' from 'Table' where 'IDField'='IDValue'). If
+%% the query returns more than one record, only the first record's value is
+%% returned.
 field(Table,Field,IDField,IDValue) when is_atom(Table) ->
     field(atom_to_list(Table),Field,IDField,IDValue);
 field(Table,Field,IDField,IDValue) when is_atom(Field) ->
@@ -451,18 +452,23 @@ field(Table,Field,IDField,IDValue) when is_atom(IDField) ->
 field(Table,Field,IDField,IDValue) ->
     db:fffr(["select ",Field," from ",Table," where ",IDField,"= ?"],[IDValue]).
 
-%% This does the same as above, but uses Table ++ "id" for the idfield
+-spec field(Table :: table(), Field :: field(), Value :: value()) -> value() | not_found.
+%% @doc This does the same as above, but uses Table ++ "id" for the idfield
 field(Table,Field,IDValue) when is_atom(Table) ->
     field(atom_to_list(Table),Field,IDValue);
 field(Table,Field,IDValue) ->
     field(Table,Field,Table ++ "id",IDValue).
 
+-spec delete(Table :: table(), ID :: value()) -> ok.
+%% @doc Deletes rows from Table where the Table ++ "id" = ID
 delete(Table,ID) when is_atom(Table) ->
     delete(atom_to_list(Table),ID);
 delete(Table,ID) when is_list(Table) ->
     KeyField = Table ++ "id",
     delete(Table,KeyField,ID).
 
+-spec delete(Table :: table(), KeyField :: field(), ID :: value()) -> ok
+%% @doc Deletes from Table where KeyField = ID
 delete(Table,KeyField,ID) when is_atom(Table) ->
     delete(atom_to_list(Table),KeyField,ID);
 delete(Table,KeyField,ID) when is_atom(KeyField) ->
@@ -470,7 +476,10 @@ delete(Table,KeyField,ID) when is_atom(KeyField) ->
 delete(Table,KeyField,ID) ->
     db:q(["delete from ",Table," where ",KeyField,"=?"],[ID]).
 
-%%% Prepares a query with Parameters %%%%%%%%%%
+-spec q_prep(Q :: sql(), ParamList :: [value()]) -> sql().
+%% @doc Prepares a query with Parameters, replacing all question marks with the
+%% values provided in ParamList.  Returns the newly generated SQL statement as
+%% an iolist
 q_prep(Q,[]) ->
     Q;
 q_prep(Q,ParamList) ->
@@ -491,8 +500,9 @@ q_join([QFirstPart | [QRest]],[FirstParam | [] ]) when is_list(QFirstPart);is_li
 q_join([QFirstPart], []) ->
     QFirstPart.
 
-%% Prelim Encoding, then does mysql encoding %%%
-%% primarily for the atoms true and false
+-spec encode(V) -> binary().
+%% @doc Safely encodes text for insertion into a query.  Replaces the atoms
+%% 'true' and 'false' with <<"1">> and <<"0">> respectively.
 encode(true) -> <<"1">>;
 encode(false) -> <<"0">>;
 encode(Other) -> emysql_util:encode(Other).
@@ -500,24 +510,31 @@ encode(Other) -> emysql_util:encode(Other).
 remove_wrapping_quotes(Str) ->
     lists:reverse(tl(lists:reverse(tl(Str)))).
 
-
+-spec encode64(T :: any()) -> string().
+%% @doc Encodes an erlang term into a base64 string which can be safely
+%% inserted into a text field 
 encode64("") -> "";
 encode64(undefined) -> "";
 encode64(Data) ->
     base64:encode_to_string(term_to_binary(Data)).
 
+-spec decode64(T :: any()) -> string().
+%% @doc Decodes a base64 string into the relevant erlang term.
 decode64("") -> "";
 decode64(undefined) -> "";
 decode64(Data) ->
     binary_to_term(base64:decode(Data)).
 
-%% Takes a list of items and encodes them for SQL then returns a
-%% comma-separated list of them
+-spec encode_list(List :: [value()]) -> iolist().
+%% @doc Takes a list of items and encodes them for SQL then returns a
+%% comma-separated list of them.
 encode_list(List) ->
     NewList = [encode(X) || X<-List],
     iolist_join(NewList,",").
 
-
+-spec dict_to_proplist(SrcDict, AcceptableFields) -> proplist().
+%% @doc Converts a dict to a proplist, filtering out any fields not found in
+%% AcceptableFields
 dict_to_proplist(SrcDict,AcceptableFields) ->
     DictFilterFoldFun = fun(F,Dict) ->
         case dict:is_key(F,Dict) of
@@ -528,6 +545,8 @@ dict_to_proplist(SrcDict,AcceptableFields) ->
     FilteredDict = lists:foldl(DictFilterFoldFun,SrcDict,AcceptableFields),
     dict:to_list(FilteredDict).
 
+-spec iolist_join(List :: [iolist()], Delimiter :: iolist()) -> iolist().
+%% @doc Joins a list of iolists together by a delimiter
 iolist_join([], _) ->
     [];
 iolist_join([H], _) ->
@@ -540,6 +559,14 @@ to_bool(0) ->       false;
 to_bool(undefined) ->   false;
 to_bool(_) ->       true.
 
+-spec limit_clause(PerPage :: integer(), Page :: integer()) -> iolist().
+%% @doc Generates a SQL "LIMIT" clause based on the PerPage Criteria and the
+%% Page, calculating the offset according to the provided values. Useful when
+%% building something that breaks a list into pages in an interface.
+limit_clause(PerPage, Page) ->
+    Offset = offset(PerPage, Page),
+    [" limit ",integer_to_list(Offset),", ",integer_to_list(PerPage)].
+
 offset(PerPage, Page) when Page =< 0 ->
     offset(PerPage, 1);
 offset(PerPage, Page) when PerPage < 1 ->
@@ -547,6 +574,3 @@ offset(PerPage, Page) when PerPage < 1 ->
 offset(PerPage, Page) when Page > 0 ->
     (Page-1) * PerPage.
 
-limit_clause(PerPage, Page) ->
-    Offset = offset(PerPage, Page),
-    [" limit ",integer_to_list(Offset),", ",integer_to_list(PerPage)].
