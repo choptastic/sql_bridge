@@ -467,7 +467,7 @@ delete(Table,ID) when is_list(Table) ->
     KeyField = Table ++ "id",
     delete(Table,KeyField,ID).
 
--spec delete(Table :: table(), KeyField :: field(), ID :: value()) -> ok
+-spec delete(Table :: table(), KeyField :: field(), ID :: value()) -> ok.
 %% @doc Deletes from Table where KeyField = ID
 delete(Table,KeyField,ID) when is_atom(Table) ->
     delete(atom_to_list(Table),KeyField,ID);
@@ -500,7 +500,7 @@ q_join([QFirstPart | [QRest]],[FirstParam | [] ]) when is_list(QFirstPart);is_li
 q_join([QFirstPart], []) ->
     QFirstPart.
 
--spec encode(V) -> binary().
+-spec encode(V :: any()) -> binary().
 %% @doc Safely encodes text for insertion into a query.  Replaces the atoms
 %% 'true' and 'false' with <<"1">> and <<"0">> respectively.
 encode(true) -> <<"1">>;
@@ -532,7 +532,7 @@ encode_list(List) ->
     NewList = [encode(X) || X<-List],
     iolist_join(NewList,",").
 
--spec dict_to_proplist(SrcDict, AcceptableFields) -> proplist().
+-spec dict_to_proplist(SrcDict :: dict(), AcceptableFields :: [field()]) -> proplist().
 %% @doc Converts a dict to a proplist, filtering out any fields not found in
 %% AcceptableFields
 dict_to_proplist(SrcDict,AcceptableFields) ->
