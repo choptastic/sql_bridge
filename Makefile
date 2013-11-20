@@ -17,7 +17,7 @@ DEPS=erts kernel stdlib crypto sasl
 $(DEPS_PLT):
 	@echo Building local plt at $(DEPS_PLT)
 	@echo 
-	@(dialyzer --output_plt $(DEPS_PLT) --build_plt --apps $(DEPS))
+	@(dialyzer --output_plt $(DEPS_PLT) --build_plt --apps $(DEPS) -r ./deps)
 
 dialyzer: compile $(DEPS_PLT)
 	@(dialyzer --fullpath --plt $(DEPS_PLT) -Wrace_conditions -r ./ebin)

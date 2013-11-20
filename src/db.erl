@@ -115,7 +115,7 @@ pl(Table,KeyField,PropList) when is_list(Table) ->
                   Zero == undefined;
                   Zero == "";
                   Zero == <<>> -> 
-            pli(Table,pl:delete(PropList,KeyField));
+            pli(Table,lists:keydelete(KeyField,1,PropList));
         _ -> 
             plu(Table,KeyField,PropList)
     end.
