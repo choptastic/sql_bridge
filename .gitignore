@@ -1,0 +1,6 @@
+*~
+*.sw?
+.deps_plt
+erl_crash.dump
+deps/
+ebin/
