@@ -25,10 +25,10 @@
 -type field()       :: string() | atom().
 -type value()       :: string() | binary() | atom() | integer() | float().
 -type insert_id()   :: term().
--type update_id()   :: term().
--type proplist()    :: {atom() | value()}.
+-type affected_rows() :: integer().
+-type proplist()    :: [{atom(), value()}].
 -type json()        :: list().
--type return_type() :: dict | list | proplist | tuple.
+-type return_type() :: dict | list | proplist | tuple | insert | update.
 
 -spec get_env(Var :: atom(), Def :: term()) -> term().
 get_env(Var, Def) ->
@@ -91,7 +91,7 @@ connect(DB) when is_atom(DB) ->
     emysql:add_pool(DB, ?CPP, ?USER, ?PASS, ?HOST, ?PORT, atom_to_list(DB), utf8),
     DB.
 
--spec pl(Table :: table(), Proplist :: proplist()) -> insert_id() | update_id().
+-spec pl(Table :: table(), Proplist :: proplist()) -> insert_id() | affected_rows().
 % @doc Shortcut for pl(Table, Table ++ "id", PropList)
 pl(Table,PropList) when is_atom(Table) ->
     pl(atom_to_list(Table),PropList);
@@ -99,7 +99,7 @@ pl(Table,PropList) when is_list(Table) ->
     KeyField = Table ++ "id",
     pl(Table,KeyField,PropList).
 
--spec pl(Table :: table(), KeyField :: field(), PropList :: proplist()) -> insert_id() | update_id().
+-spec pl(Table :: table(), KeyField :: field(), PropList :: proplist()) -> insert_id() | affected_rows().
 % @doc Inserts into or updates a table based on the value of the KeyField i1n
 % PropList. If get_value(KeyField, PropList) is "0", 0, or undefined, then
 % insert, otherwise update
@@ -196,7 +196,7 @@ pli(Table,InitPropList) ->
     SQL = ["insert into ",Table," set ",Set],
     qi(SQL).
 
--spec plu(Table :: table(), PropList :: proplist()) -> update_id().
+-spec plu(Table :: table(), PropList :: proplist()) -> affected_rows().
 %% @doc Updates a row from the proplist based on the key `Table ++ "id"` in the Table
 plu(Table,PropList) when is_atom(Table) ->
     plu(atom_to_list(Table),PropList);
@@ -204,7 +204,7 @@ plu(Table,PropList) ->
     KeyField = list_to_atom(Table ++ "id"),
     plu(Table,KeyField,PropList).
 
--spec plu(Table :: table(), KeyField :: field(), PropList :: proplist()) -> update_id().
+-spec plu(Table :: table(), KeyField :: field(), PropList :: proplist()) -> affected_rows().
 %% @doc Update a row from proplist based on the Keyfield `Keyfield` on provided Table
 plu(Table,KeyField,InitPropList) when is_atom(Table) ->
     plu(atom_to_list(Table),KeyField,InitPropList);
@@ -218,7 +218,7 @@ plu(Table,KeyField,InitPropList) ->
     KeyValue.
 
 -spec db_q(Type :: return_type(), Db :: db(), Q :: sql()) ->  insert_id() 
-                                                            | update_id()
+                                                            | affected_rows()
                                                             | [list() | dict() | tuple() | proplist()].
 %% @doc Query from the specified Database pool (Db) This will connect to the
 %% specified Database Pool Type must be atoms: proplist, dict, list, or tuple
@@ -249,7 +249,7 @@ db_q(Type,Db,Q) ->
 
 -spec db_q(Type :: return_type(), Db :: db(),
            Q :: sql(), ParamList :: [value()]) ->   insert_id() 
-                                                  | update_id()
+                                                  | affected_rows()
                                                   | [list() | dict() | tuple() | proplist()].
 %% @doc Same as db_q/3, but ParamList is safely inserted into the Query
 db_q(Type,Db,Q,ParamList) ->
@@ -262,17 +262,17 @@ db_q(Type,Db,Q,ParamList) ->
                                                                    | proplist().
 %% @doc Format the results from emysql as a list of Types
 format_result(Type,Res) ->
-Json = emysql_util:as_json(Res),
-case Type of
-list ->
-format_list_result(Json);
-tuple ->
-format_tuple_result(Json);
-proplist ->
-format_proplist_result(Json);
-dict ->
-format_dict_result(Json)
-end.
+    Json = emysql_util:as_json(Res),
+    case Type of
+        list ->
+            format_list_result(Json);
+        tuple ->
+            format_tuple_result(Json);
+        proplist ->
+            format_proplist_result(Json);
+        dict ->
+            format_dict_result(Json)
+    end.
 
 -spec format_value(V :: term()) -> undefined | string() | any().
 %% @doc Stringifies values from the database if the returned value is a binary,
@@ -326,12 +326,12 @@ qi(Q,ParamList) ->
     Db = db(),
     db_q(insert,Db,Q,ParamList).
 
--spec qu(Q :: sql()) -> update_id().
+-spec qu(Q :: sql()) -> affected_rows().
 qu(Q) ->
     Db = db(),
     db_q(update, Db, Q).
 
--spec qu(Q :: sql(), ParamList :: [value()]) -> update_id().
+-spec qu(Q :: sql(), ParamList :: [value()]) -> affected_rows().
 qu(Q, ParamList) ->
     Db = db(),
     db_q(update, Db, Q, ParamList).
@@ -341,7 +341,6 @@ qu(Q, ParamList) ->
 plfr(Q,ParamList) ->
     case plq(Q,ParamList) of
         [] -> not_found;
-        [[undefined]] -> not_found;
         [First|_] -> First
     end.
 
@@ -357,7 +356,6 @@ tfr(Q) ->
 tfr(Q,ParamList) ->
     case tq(Q,ParamList) of
         [] -> not_found;
-        [[undefined]] -> not_found;
         [First|_] -> First
     end.
 
@@ -459,7 +457,7 @@ field(Table,Field,IDValue) when is_atom(Table) ->
 field(Table,Field,IDValue) ->
     field(Table,Field,Table ++ "id",IDValue).
 
--spec delete(Table :: table(), ID :: value()) -> ok.
+-spec delete(Table :: table(), ID :: value()) -> affected_rows().
 %% @doc Deletes rows from Table where the Table ++ "id" = ID
 delete(Table,ID) when is_atom(Table) ->
     delete(atom_to_list(Table),ID);
@@ -467,14 +465,14 @@ delete(Table,ID) when is_list(Table) ->
     KeyField = Table ++ "id",
     delete(Table,KeyField,ID).
 
--spec delete(Table :: table(), KeyField :: field(), ID :: value()) -> ok.
+-spec delete(Table :: table(), KeyField :: field(), ID :: value()) -> affected_rows().
 %% @doc Deletes from Table where KeyField = ID
 delete(Table,KeyField,ID) when is_atom(Table) ->
     delete(atom_to_list(Table),KeyField,ID);
 delete(Table,KeyField,ID) when is_atom(KeyField) ->
     delete(Table,atom_to_list(KeyField),ID);
 delete(Table,KeyField,ID) ->
-    db:q(["delete from ",Table," where ",KeyField,"=?"],[ID]).
+    db:qu(["delete from ",Table," where ",KeyField,"=?"],[ID]).
 
 -spec q_prep(Q :: sql(), ParamList :: [value()]) -> sql().
 %% @doc Prepares a query with Parameters, replacing all question marks with the
