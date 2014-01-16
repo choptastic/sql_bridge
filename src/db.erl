@@ -72,6 +72,7 @@ db(DB) ->
 -spec start() -> ok.
 % @doc starts the actual database driver, if necessary
 start() ->
+    application:load(sigma_sql),
     case ?TYPE of
         mysql -> 
                 application:start(crypto),
