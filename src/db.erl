@@ -506,6 +506,8 @@ encode(true) -> <<"1">>;
 encode(false) -> <<"0">>;
 encode(Other) -> emysql_util:encode(Other).
 
+remove_wrapping_quotes(Bin) when is_binary(Bin) ->
+    binary_part(Bin, 1, byte_size(Bin)-2);
 remove_wrapping_quotes(Str) ->
     lists:reverse(tl(lists:reverse(tl(Str)))).
 
