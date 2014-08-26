@@ -504,7 +504,7 @@ q_join([QFirstPart], []) ->
 %% 'true' and 'false' with <<"1">> and <<"0">> respectively.
 encode(true) -> <<"1">>;
 encode(false) -> <<"0">>;
-encode(Other) -> emysql_util:encode(Other).
+encode(Other) -> emysql_conn:encode(Other, binary).
 
 remove_wrapping_quotes(Bin) when is_binary(Bin) ->
     binary_part(Bin, 1, byte_size(Bin)-2);
