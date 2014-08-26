@@ -303,11 +303,18 @@ they only return a single row. They all start with `fr` for "first record"
     offset calculation for you and return a limit clause that can be inserted into
     the query.
 
-    
+   
+## TODO
+
+  * Add PostgreSQL support
+  * Add PostgreSQL-style variable replacement to be usable for either database.
+    Example: `db:q("select * from mytab where a=$1 and b=$1", [123, "somestring"])`
+  * Experiment with [record-based querys](https://github.com/choptastic/sigma_sql/issues/1)
+  * Add proper [transaction support](https://github.com/choptastic/sigma_sql/issues/2)
 
 ## About
 
-Copyright (c) 2013 [Jesse Gumm](http://sigma-star.com/page/jesse)
+Copyright (c) 2013-2014 [Jesse Gumm](http://sigma-star.com/page/jesse)
 ([@jessegumm](http://twitter.com/jessegumm))
 
 MIT License
