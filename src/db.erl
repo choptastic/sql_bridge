@@ -1,6 +1,7 @@
 %% vim: ts=4 sw=4 et
 -module(db).
 -compile(export_all).
+-compile(nowarn_deprecated_type).
 
 -define(WARNING(QueryText,Msg), error_logger:info_msg("QUERY WARNING: ~p~n~nQuery:~n~p~n~n",[Msg,QueryText])).
 
@@ -151,13 +152,13 @@ q(Q,ParamList) ->
     Db = db(),
     db_q(list,Db,Q,ParamList).
 
--spec dq(Q :: sql()) -> [dict:dict()].
+-spec dq(Q :: sql()) -> [dict()].
 %% @doc Same as q/1, but returns a list of dicts.
 dq(Q) ->
     Db = db(),
     db_q(dict,Db,Q).
 
--spec dq(Q :: sql(), ParamList :: [value()]) -> [dict:dict()].
+-spec dq(Q :: sql(), ParamList :: [value()]) -> [dict()].
 %% @doc Same as q/2, but returns a list of dicts
 dq(Q,ParamList) ->
     Db = db(),
@@ -220,7 +221,7 @@ plu(Table,KeyField,InitPropList) ->
 
 -spec db_q(Type :: return_type(), Db :: db(), Q :: sql()) ->  insert_id() 
                                                             | affected_rows()
-                                                            | [list() | dict:dict() | tuple() | proplist()].
+                                                            | [list() | dict() | tuple() | proplist()].
 %% @doc Query from the specified Database pool (Db) This will connect to the
 %% specified Database Pool Type must be atoms: proplist, dict, list, or tuple
 %% Type can also be atom 'insert' in which case, it'll return the insert value
@@ -251,14 +252,14 @@ db_q(Type,Db,Q) ->
 -spec db_q(Type :: return_type(), Db :: db(),
            Q :: sql(), ParamList :: [value()]) ->   insert_id() 
                                                   | affected_rows()
-                                                  | [list() | dict:dict() | tuple() | proplist()].
+                                                  | [list() | dict() | tuple() | proplist()].
 %% @doc Same as db_q/3, but ParamList is safely inserted into the Query
 db_q(Type,Db,Q,ParamList) ->
     NewQ = q_prep(Q,ParamList),
     db_q(Type,Db,NewQ).
 
 -spec format_result(Type :: return_type(), Res :: sql_result()) ->   list()
-                                                                   | dict:dict()
+                                                                   | dict()
                                                                    | tuple()
                                                                    | proplist().
 %% @doc Format the results from emysql as a list of Types
@@ -311,7 +312,7 @@ format_proplist_result(Json) ->
         [{format_key(F), format_value(V)} || {F,V} <- Row]
     || Row <-Json].
 
--spec format_dict_result(Json :: json()) -> [dict:dict()].
+-spec format_dict_result(Json :: json()) -> [dict()].
 format_dict_result(Json) ->
     [dict:from_list(PL) || PL <- format_proplist_result(Json)].
 
@@ -533,7 +534,7 @@ encode_list(List) ->
     NewList = [encode(X) || X<-List],
     iolist_join(NewList,",").
 
--spec dict_to_proplist(SrcDict :: dict:dict(), AcceptableFields :: [field()]) -> proplist().
+-spec dict_to_proplist(SrcDict :: dict(), AcceptableFields :: [field()]) -> proplist().
 %% @doc Converts a dict to a proplist, filtering out any fields not found in
 %% AcceptableFields
 dict_to_proplist(SrcDict,AcceptableFields) ->
