@@ -307,9 +307,12 @@ they only return a single row. They all start with `fr` for "first record"
 ## TODO
 
 By v0.1.0
+  * Add Maps support (with appropriate macros) to prevent compiling maps
+    functions pre-Erlang-17
   * Add PostgreSQL support
   * Add PostgreSQL-style variable replacement to be usable for either database.
-    Example: `db:q("select * from mytab where a=$1 and b=$1", [123, "somestring"])`
+    Example: `db:q("select * from mytab where a=$1 and b=$1", [123,
+	"somestring"])`
   * Add proper [transaction support](https://github.com/choptastic/sigma_sql/issues/2)
 
 By v0.2.0, maybe
