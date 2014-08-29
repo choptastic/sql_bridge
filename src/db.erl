@@ -228,13 +228,13 @@ plu(Table,KeyField,InitPropList) ->
 db_q(Type,Db,Q) ->
     try 
         Res = emysql:execute(Db,Q),
-        case emysql_util:result_type(Res) of
+        case emysql:result_type(Res) of
             result ->
                 format_result(Type,Res);
             ok ->
                 case Type of
-                    insert -> emysql_util:insert_id(Res);
-                    _ ->      emysql_util:affected_rows(Res)
+                    insert -> emysql:insert_id(Res);
+                    _ ->      emysql:affected_rows(Res)
                 end;
             error ->
                 error_logger:info_msg("Error in SQL: ~s~nRes: ~p~n",[Q, Res]),
@@ -264,7 +264,7 @@ db_q(Type,Db,Q,ParamList) ->
                                                                    | proplist().
 %% @doc Format the results from emysql as a list of Types
 format_result(Type,Res) ->
-    Json = emysql_util:as_json(Res),
+    Json = emysql:as_json(Res),
     case Type of
         list ->
             format_list_result(Json);
