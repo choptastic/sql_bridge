@@ -253,6 +253,7 @@ they only return a single row. They all start with `fr` for "first record"
     ```erlang
     > db:fields(player).
     [playerid, name, race, class, level, alive]
+    ```
 
 #### Insert, Update, Delete Queries
 
