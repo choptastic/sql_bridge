@@ -2,7 +2,7 @@
 {application, sigma_sql,
     [
         {description, "An abstraction layer in front of SQL Databases."},
-        {vsn, "0.0.3"},
+        {vsn, "0.0.4"},
         {registered, []},
         {applications, [
                 kernel,
