@@ -253,6 +253,7 @@ they only return a single row. They all start with `fr` for "first record"
     ```erlang
     > db:fields(player).
     [playerid, name, race, class, level, alive]
+    ```
 
 #### Insert, Update, Delete Queries
 
@@ -314,6 +315,8 @@ By v0.1.0
     Example: `db:q("select * from mytab where a=$1 and b=$1", [123,
 	"somestring"])`
   * Add proper [transaction support](https://github.com/choptastic/sigma_sql/issues/2)
+  * Add dynamic pool resizing (`emysql:increment_pool_size` and
+    `emysql:decrement_pool_size`)
 
 By v0.2.0, maybe
   * Experiment with [record-based querys](https://github.com/choptastic/sigma_sql/issues/1)
