@@ -1,5 +1,5 @@
 %% vim: ts=4 sw=4 et
--module(db).
+-module(sigma_sql).
 -compile(export_all).
 -include("compat.hrl").
 
@@ -30,8 +30,6 @@
 -type proplist()    :: [{atom(), value()}].
 -type json()        :: list().
 -type return_type() :: dict | list | proplist | tuple | insert | update.
-
-
 
 -spec get_env(Var :: atom(), Def :: term()) -> term().
 get_env(Var, Def) ->
@@ -391,7 +389,7 @@ fffr(Q) ->
 %% First Field List
 -spec ffl(Q :: sql(), ParamList :: [value()]) -> [string() | integer()].
 ffl(Q,ParamList) ->
-    [First || [First | _ ] <- db:q(Q,ParamList)].
+    [First || [First | _ ] <- q(Q,ParamList)].
 
 -spec ffl(Q :: sql()) -> [string() | integer()].
 ffl(Q) ->
@@ -402,7 +400,7 @@ ffl(Q) ->
 table_fields(Table) when is_atom(Table) ->
     table_fields(atom_to_list(Table));
 table_fields(Table) ->
-    [list_to_atom(F) || F <- db:ffl(["describe ",Table])].
+    [list_to_atom(F) || F <- ffl(["describe ",Table])].
 
 -spec fields(Table :: table()) -> [atom()].
 fields(Table) ->
@@ -452,7 +450,7 @@ field(Table,Field,IDField,IDValue) when is_atom(Field) ->
 field(Table,Field,IDField,IDValue) when is_atom(IDField) ->
     field(Table,Field,atom_to_list(IDField),IDValue);
 field(Table,Field,IDField,IDValue) ->
-    db:fffr(["select ",Field," from ",Table," where ",IDField,"= ?"],[IDValue]).
+    fffr(["select ",Field," from ",Table," where ",IDField,"= ?"],[IDValue]).
 
 -spec field(Table :: table(), Field :: field(), Value :: value()) -> value() | not_found.
 %% @doc This does the same as above, but uses Table ++ "id" for the idfield
@@ -476,7 +474,7 @@ delete(Table,KeyField,ID) when is_atom(Table) ->
 delete(Table,KeyField,ID) when is_atom(KeyField) ->
     delete(Table,atom_to_list(KeyField),ID);
 delete(Table,KeyField,ID) ->
-    db:qu(["delete from ",Table," where ",KeyField,"=?"],[ID]).
+    qu(["delete from ",Table," where ",KeyField,"=?"],[ID]).
 
 -spec q_prep(Q :: sql(), ParamList :: [value()]) -> sql().
 %% @doc Prepares a query with Parameters, replacing all question marks with the
