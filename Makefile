@@ -7,7 +7,7 @@ compile:
 	./rebar compile
 
 run:
-	erl -pa ebin/ -pa deps/*/ebin/ -eval "application:start(crypto)" -eval "application:start(emysql)" -eval "application:load(sigma_sql)" -config test.config
+	erl -pa ebin/ -pa deps/*/ebin/ -eval "application:start(crypto)" -eval "application:start(emysql)" -eval "application:load(sigma_sql)" -config sample.config
 
 
 DEPS_PLT=$(CURDIR)/.deps_plt

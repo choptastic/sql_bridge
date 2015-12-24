@@ -6,6 +6,7 @@
 -define(WARNING(QueryText,Msg), error_logger:info_msg("QUERY WARNING: ~p~n~nQuery:~n~p~n~n",[Msg,QueryText])).
 
 -define(ENV(Var, Def), (get_env(Var, Def))).
+-define(ALIAS,  ?ENV(module_alias, db)).
 -define(TYPE,   ?ENV(type, mysql)).
 -define(HOST,   ?ENV(host, "127.0.0.1")).
 -define(PORT,   ?ENV(port, 3306)).
@@ -74,6 +75,7 @@ db(DB) ->
 % @doc starts the actual database driver, if necessary
 start() ->
     application:load(sigma_sql),
+    ok = sigma_sql_build_alias:build(?ALIAS),
     case ?TYPE of
         mysql -> 
                 application:start(crypto),
