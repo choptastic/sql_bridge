@@ -1,5 +1,5 @@
 %% vim: ts=4 sw=4 et
--module(sigma_sql).
+-module(sql_bridge).
 -compile(export_all).
 -include("compat.hrl").
 
@@ -12,13 +12,13 @@
 -define(PORT,   ?ENV(port, 3306)).
 -define(USER,   ?ENV(user, "root")).
 -define(PASS,   ?ENV(pass, "")).
--define(LOOKUP, ?ENV(lookup, fun() -> throw({sigma_sql,undefined_lookup_method}) end )).
+-define(LOOKUP, ?ENV(lookup, fun() -> throw({sql_bridge,undefined_lookup_method}) end )).
 -define(CPP,    ?ENV(connections_per_pool, 10)).
 
 %% does not currently do anything
--define(AUTOGROW, application:get_env(sigma_sql, autogrow_pool, false)).
+-define(AUTOGROW, application:get_env(sql_bridge, autogrow_pool, false)).
 
--define(DB, sigma_sql_cached_db).
+-define(DB, sql_bridge_cached_db).
 
 -type sql()         :: iolist().
 -type sql_result()  :: any().
@@ -34,7 +34,7 @@
 
 -spec get_env(Var :: atom(), Def :: term()) -> term().
 get_env(Var, Def) ->
-    case application:get_env(sigma_sql, Var) of
+    case application:get_env(sql_bridge, Var) of
         undefined -> Def;
         {ok, Val} -> Val
     end.
@@ -74,8 +74,8 @@ db(DB) ->
 -spec start() -> ok.
 % @doc starts the actual database driver, if necessary
 start() ->
-    application:load(sigma_sql),
-    ok = sigma_sql_build_alias:build(?ALIAS),
+    application:load(sql_bridge),
+    ok = sql_bridge_build_alias:build(?ALIAS),
     case ?TYPE of
         mysql -> 
                 application:start(crypto),
@@ -228,6 +228,12 @@ plu(Table,KeyField,InitPropList) ->
 %% specified Database Pool Type must be atoms: proplist, dict, list, or tuple
 %% Type can also be atom 'insert' in which case, it'll return the insert value
 db_q(Type,Db,Q) ->
+%    case ?TYPE of
+%        mysql ->
+%            sql_bridge_mysql:db_q(Type, Db, Q);
+%        postgresql ->
+%            sql_bridge_pgsql:db_q(Type, Db, Q)
+%    end.
     try 
         Res = emysql:execute(Db,Q),
         case emysql:result_type(Res) of

@@ -1,8 +1,16 @@
-# SigmaSQL
+# SQL_Bridge
 
-A SQL helper library, currently only running on top of
-[emysql](https://github.com/Eonblast/Emysql), but with the intention of
-eventually running on top a PostgreSQL driver as well.
+An Erlang SQL Abstraction layer for interfacing with SQL databases.
+
+### Supported Databases:
+
+	* MySQL
+	* PostgreSQL
+
+#### Planned for support
+
+	* Microsoft SQL Server
+	* SQLite
 
 ## What it does
 
@@ -18,7 +26,7 @@ setting, updating data from proplists, and more.
      available database pools. No need to identify a specific pool with
      requests.
    * Connections are made automatically when the first query is attempted
-   * A process determines which database to connect to via the `sigma_sql`
+   * A process determines which database to connect to via the `sql_bridge`
      application variable `lookup`.
    * This is used commonly to simplify the process of running a single codebase
      which connects to different database for different users or for different
@@ -31,7 +39,7 @@ settings currently available:
 
 ```erlang
 [
-    {sigma_sql, [
+    {sql_bridge, [
         {type, mysql},
         {host, "127.0.0.1"},
         {port, 3306},
@@ -314,16 +322,17 @@ By v0.1.0
   * Add PostgreSQL-style variable replacement to be usable for either database.
     Example: `db:q("select * from mytab where a=$1 and b=$1", [123,
 	"somestring"])`
-  * Add proper [transaction support](https://github.com/choptastic/sigma_sql/issues/2)
+  * Add proper [transaction support](https://github.com/choptastic/sql_bridge/issues/2)
   * Add dynamic pool resizing (`emysql:increment_pool_size` and
     `emysql:decrement_pool_size`)
+  * Switch away from Emysql to a driver that properly supports transactions.
 
 By v0.2.0, maybe
-  * Experiment with [record-based querys](https://github.com/choptastic/sigma_sql/issues/1)
+  * Experiment with [record-based querys](https://github.com/choptastic/sql_bridge/issues/1)
 
 ## About
 
-Copyright (c) 2013-2014 [Jesse Gumm](http://sigma-star.com/page/jesse)
+Copyright (c) 2013-2015 [Jesse Gumm](http://sigma-star.com/page/jesse)
 ([@jessegumm](http://twitter.com/jessegumm))
 
 MIT License

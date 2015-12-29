@@ -1,8 +1,8 @@
--module(sigma_sql_build_alias).
+-module(sql_bridge_build_alias).
 -export([build/1]).
 -include_lib("syntax_tools/include/merl.hrl").
 
-%% sigma_sql used to have its main module be called 'db', but obviously, there
+%% sql_bridge used to have its main module be called 'db', but obviously, there
 %% are chances that there can be overlap there.  This script will read the
 %% application var for module_alias and generate a passthru module specifically
 %% for it.  By default, the module is called 'db', but changing this value will
@@ -10,7 +10,7 @@
 %% db:q().
 
 build(Alias) ->
-	Exports = sigma_sql:module_info(exports),
+	Exports = sql_bridge:module_info(exports),
 	Modtext = build_module(Alias, Exports),
 	Forms = merl:quote(Modtext),
 	Res = merl:compile_and_load(Forms),
@@ -44,7 +44,7 @@ build_export({Fun, Arity}) ->
 	_Line = prefixize(FunCall).
 
 prefixize(FunCall) ->
-	FunCall ++ " -> sigma_sql:" ++ FunCall ++ ".\n".
+	FunCall ++ " -> sql_bridge:" ++ FunCall ++ ".\n".
 	
 arglist(Argc) ->
 	Args = lists:seq($A, $A+Argc-1),
