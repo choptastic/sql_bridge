@@ -315,7 +315,7 @@ they only return a single row. They all start with `fr` for "first record"
    
 ## TODO
 
-By v0.1.0
+### v0.1.0
   * Add Maps support (with appropriate macros) to prevent compiling maps
     functions pre-Erlang-17
   * Add PostgreSQL support
@@ -327,8 +327,9 @@ By v0.1.0
     `emysql:decrement_pool_size`)
   * Switch away from Emysql to a driver that properly supports transactions.
 
-By v0.2.0, maybe
-  * Experiment with [record-based querys](https://github.com/choptastic/sql_bridge/issues/1)
+### v0.2.0 
+  * Test suite
+  * Maybe Experiment with [record-based querys](https://github.com/choptastic/sql_bridge/issues/1)
 
 ## About
 
