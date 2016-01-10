@@ -1,4 +1,4 @@
--module(sql_bridge_build_alias).
+-module(sql_bridge_alias).
 -export([build/1]).
 -include_lib("syntax_tools/include/merl.hrl").
 

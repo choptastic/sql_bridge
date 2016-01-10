@@ -86,7 +86,7 @@ db(DB) ->
 % @doc starts the actual database driver, if necessary
 start() ->
     application:load(sql_bridge),
-    ok = sql_bridge_build_alias:build(?ALIAS),
+    ok = sql_bridge_alias:build(?ALIAS),
     ok = ?ADAPTER:start(),
     ok.
 
@@ -234,7 +234,7 @@ plu(Table,KeyField,InitPropList) ->
 %% specified Database Pool Type must be atoms: proplist, dict, list, or tuple
 %% Type can also be atom 'insert' in which case, it'll return the insert value
 db_q(Type,Db,Q) ->
-    ?ADAPTER:db_q(Type, Db, Q).
+    ?ADAPTER:query(Type, Db, Q).
 
 -spec db_q(Type :: return_type(), Db :: db(),
            Q :: sql(), ParamList :: [value()]) ->   insert_id() 
