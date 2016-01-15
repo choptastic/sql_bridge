@@ -16,11 +16,12 @@ start_link(Args) ->
 init(Args) ->
 	process_flag(trap_exit, true),
 	Hostname = proplists:get_value(hostname, Args),
-	Database = sql_bridge_utils:to_string(proplists:get_value(database, Args)),
+	Database = proplists:get_value(database, Args),
 	Username = proplists:get_value(username, Args),
 	Password = proplists:get_value(password, Args),
 	Port = proplists:get_value(port, Args, 5432),
 	Options = [{database, Database}, {port, Port}],
+	error_logger:info_msg("Attempting to connect to ~p.~nUsername: ~p, Password: ~p.~nOptions: ~p~n", [Hostname, Username, Password, Options]),
 	{ok, Conn} = epgsql:connect(Hostname, Username, Password, Options),
 	{ok, #state{conn=Conn}}.
 

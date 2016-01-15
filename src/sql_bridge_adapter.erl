@@ -5,7 +5,7 @@
 
 -callback connect(DB :: sql_bridge:db(),
 				  User :: string(), Pass :: string(),
-				  Host :: string(), Port :: integer()) -> DB :: sql_bridge:db().
+				  Host :: string(), Port :: integer()) -> ok.
 
 -callback query(Type :: sql_bridge:return_type(),
 				DB :: sql_bridge:db(),

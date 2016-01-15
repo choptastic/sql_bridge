@@ -45,14 +45,30 @@ main([]) ->
     end.
 
 process_otp_version(Version = "R" ++ _) ->
-    io:format("...OTP ~s does not require module prefixes for types...~n",[Version]),
-    [make_type_pre_17(OldType) || {OldType, _} <- ?TYPES];
+    io:format("sql_bridge compat: OTP ~s:~n", [Version]),
+    io:format("      + does not require module prefixes for types~n"),
+    io:format("      + does not support maps...~n"),
+    [
+        [make_type_pre_17(OldType) || {OldType, _} <- ?TYPES],
+        make_nomap_macro()
+    ];
 process_otp_version(Version) ->
-    io:format("...OTP ~s requires module prefixes for types...~n",[Version]),
-    [make_type_17_plus(Types) || Types <- ?TYPES].
+    io:format("sql_bridge compat: OTP ~s:~n", [Version]),
+    io:format("      + requires module prefixes for types~n"),
+    io:format("      + supports maps...~n"),
+    [
+        [make_type_17_plus(Types) || Types <- ?TYPES],
+        make_map_macro()
+    ].
 
 make_type_pre_17(Type) ->
     ["-type ",?TYPE_PREFIX,Type, " :: ",Type,".\n"].
 
 make_type_17_plus({Type, FullType}) ->
     ["-type ",?TYPE_PREFIX,Type, " :: ",FullType,".\n"].
+
+make_map_macro() ->
+    ["-define(has_maps, true).\n"].
+
+make_nomap_macro() ->
+    [].

@@ -17,7 +17,7 @@ connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
 	%% Emysql doesn't use Overflow, so if it maxes out, it's just maxed
 	ConnPerPool = sql_bridge_utils:get_env(connections_per_pool),
     emysql:add_pool(DB, ConnPerPool, User, Pass, Host, Port, atom_to_list(DB), utf8),
-    DB.
+	ok.
 
 start() ->
 	application:start(crypto),

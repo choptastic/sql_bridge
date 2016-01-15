@@ -29,8 +29,10 @@ get_env(Var, Def) ->
 
 with_poolboy_pool(DB, Fun) ->
     Worker = poolboy:checkout(DB),
-    Fun(Worker),
-    poolboy:checkin(DB, Worker).
+    Return = Fun(Worker),
+    poolboy:checkin(DB, Worker),
+    Return.
+
 
 to_string(A) when is_atom(A) ->
     atom_to_list(A);

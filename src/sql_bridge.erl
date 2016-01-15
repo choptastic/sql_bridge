@@ -9,7 +9,7 @@
 -define(ALIAS,  ?ENV(module_alias, db)).
 -define(ADAPTER,?ENV(adapter, sql_bridge_mysql)).
 -define(HOST,   ?ENV(host, "127.0.0.1")).
--define(PORT,   ?ENV(port, 3306)).
+-define(PORT,   ?ENV(port, undefined)).
 -define(USER,   ?ENV(user, "root")).
 -define(PASS,   ?ENV(pass, "")).
 -define(LOOKUP, ?ENV(lookup, fun() -> throw({sql_bridge,undefined_lookup_method}) end )).
@@ -164,6 +164,20 @@ dq(Q,ParamList) ->
     Db = db(),
     db_q(dict,Db,Q,ParamList).
 
+-ifdef(has_maps).
+-spec mq(Q :: sql()) -> [map()].
+%% @doc Same as d1/, but returns a list of maps
+mq(Q) ->
+    Db = db(),
+    db_q(map, Db, Q).
+
+-spec mq(Q :: sql(), ParamList :: [value()]) -> [map()].
+%% @doc Same as d1/, but returns a list of maps
+mq(Q, ParamList) ->
+    Db = db(),
+    db_q(map, Db, Q, ParamList).
+-endif.
+
 -spec tq(Q :: sql()) -> [tuple()].
 %% @doc Same as q/1, but returns a list of tuples
 tq(Q) ->
@@ -265,6 +279,8 @@ qu(Q, ParamList) ->
     Db = db(),
     db_q(update, Db, Q, ParamList).
 
+
+
 -spec plfr(Q :: sql(), ParamList :: [value()]) -> proplist() | not_found.
 %% @doc fr = First Record
 plfr(Q,ParamList) ->
@@ -276,6 +292,22 @@ plfr(Q,ParamList) ->
 -spec plfr(Q :: sql()) -> proplist() | not_found.
 plfr(Q) ->
     plfr(Q,[]).
+
+-ifdef(has_maps).
+
+-spec mfr(Q :: sql(), ParamList :: [value()]) -> map() | not_found.
+%% @doc fr = First Record
+mfr(Q,ParamList) ->
+    case mq(Q,ParamList) of
+        [] -> not_found;
+        [First|_] -> First
+    end.
+
+-spec mfr(Q :: sql()) -> map() | not_found.
+mfr(Q) ->
+    mfr(Q,[]).
+
+-endif.
 
 -spec tfr(Q :: sql()) -> tuple() | not_found.
 tfr(Q) ->
