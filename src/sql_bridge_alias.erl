@@ -1,6 +1,40 @@
 -module(sql_bridge_alias).
 -export([build/1]).
+-export([build_stringify/1]).
 -include_lib("syntax_tools/include/merl.hrl").
+
+build_stringify(Stringify) ->
+	stringify_msg(Stringify),
+	Modtext = [
+		build_header(sql_bridge_stringify),
+		build_maybe_string(Stringify)
+	],
+	Forms = merl:quote(Modtext),
+	Res = merl:compile_and_load(Forms),
+	case Res of
+		{ok, _} -> ok;
+		error ->
+			error_logger:error_msg("Unable to compile alias module (~p).~n~s~n", [Modtext]),
+			error
+	end.
+
+build_maybe_string(false) ->
+	"maybe_string(B) -> B.";
+build_maybe_string(true) ->
+	"maybe_string(B) -> sql_bridge_utils:binary_to_string(B).".
+
+stringify_msg_base() ->
+	"Building sql_bridge_stringify.".
+
+stringify_msg(true) ->
+	Base = stringify_msg_base(),
+	Rest = "Binaries WILL automatically be converted to lists in query responses.",
+	msg(Base ++ " " ++ Rest);
+stringify_msg(false) ->
+	Base = stringify_msg_base(),
+	Rest = "Binaries WILL NOT automatically be converted to lists in query responses.",
+	msg(Base ++ " " ++ Rest).
+	
 
 %% sql_bridge used to have its main module be called 'db', but obviously, there
 %% are chances that there can be overlap there.  This script will read the
@@ -10,6 +44,7 @@
 %% db:q().
 
 build(Alias) ->
+	msg(io_lib:format("Building Alias module (~p) to sql_bridge.",[Alias])),
 	Exports = sql_bridge:module_info(exports),
 	Modtext = build_module(Alias, Exports),
 	Forms = merl:quote(Modtext),
@@ -20,7 +55,6 @@ build(Alias) ->
 			error_logger:error_msg("Unable to compile alias module (~p).~n~s~n", [Modtext]),
 			error
 	end.
-
 
 build_module(Alias, Exports) ->
 	lists:flatten([
@@ -46,7 +80,10 @@ build_export({Fun, Arity}) ->
 prefixize(FunCall) ->
 	FunCall ++ " -> sql_bridge:" ++ FunCall ++ ".\n".
 	
-arglist(Argc) ->
+arglist( Argc) ->
 	Args = lists:seq($A, $A+Argc-1),
 	StrArgs = [[Arg] || Arg <- Args],
 	string:join(StrArgs, ",").
+
+msg(Msg) ->
+	io:format("SQL Bridge: ~s~n",[Msg]).

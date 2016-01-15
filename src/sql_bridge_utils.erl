@@ -6,8 +6,13 @@
     to_string/1,
     with_poolboy_pool/2,
     q_prep/2,
-    q_join/2
+    q_join/2,
+    binary_to_string/1,
+    stringify_binaries/0
 ]).
+
+stringify_binaries() ->
+    get_env(stringify_binaries, false).
 
 start_poolboy_pool(Name, WorkerArgs, WorkerModule) ->
     Size = get_env(connections_per_pool, 10),
@@ -40,6 +45,15 @@ to_string(B) when is_binary(B) ->
     binary_to_list(B);
 to_string(L) when is_list(L) ->
     L.
+
+%% This is only used by the dynamically build module 'sql_bridge_stringify'.
+%% Made in the sql_bridge_alias module
+binary_to_string(B) when is_binary(B) ->
+   binary_to_list(B);
+binary_to_string(L) when is_list(L) ->
+    L;
+binary_to_string(Other) ->
+    Other.
 
 %%-spec q_prep(Q :: sql(), ParamList :: [value()]) -> sql().
 %% @doc Prepares a query with Parameters, replacing all question marks with the

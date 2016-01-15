@@ -47,15 +47,35 @@ format_result(UID, {ok, Count}) when UID=:=update;
 									 UID=:=delete ->
 	Count;
 format_result(tuple, {ok, _Columns, Rows}) ->
-	Rows;
+	format_tuples(Rows);
 format_result(list, {ok, _Columns, Rows}) ->
-	[tuple_to_list(Row) || Row <- Rows];
+	format_lists(Rows);
 format_result(proplist, {ok, Columns, Rows}) ->
 	format_proplists(Columns, Rows);
 format_result(dict, {ok, Columns, Rows}) ->
 	format_dicts(Columns, Rows);
 format_result(map, {ok, Columns, Rows}) ->
 	format_maps(Columns, Rows).
+
+format_tuples(Rows) ->
+	case sql_bridge_utils:stringify_binaries() of
+		true ->
+			[list_to_tuple(format_list(Row)) || Row <- Rows];
+		false ->
+			Rows
+	end.
+
+format_lists(Rows) ->
+	case sql_bridge_utils:stringify_binaries() of
+		true ->
+			[format_list(Row) || Row <- Rows];
+		false ->
+			[tuple_to_list(Row) || Row <- Rows]
+	end.
+
+format_list(Row) when is_tuple(Row) ->
+	Row2 = tuple_to_list(Row),
+	[sql_bridge_stringify:maybe_string(V) || V <- Row2].
 
 format_proplists(Columns, Rows) ->
 	ColNames = extract_colnames(Columns),
@@ -71,7 +91,8 @@ make_dict(Cols, Row) when is_tuple(Row) ->
 make_dict([], [], Dict) ->
 	Dict;
 make_dict([Col|Cols], [Val|Vals], Dict) ->
-	NewDict = dict:store(Col, Val, Dict),
+	Val2 = sql_bridge_stringify:maybe_string(Val),
+	NewDict = dict:store(Col, Val2, Dict),
 	make_dict(Cols, Vals, NewDict).
 
 	
@@ -82,7 +103,8 @@ extract_colnames(Columns) ->
 make_proplist(Columns, Row) when is_tuple(Row) ->
 	make_proplist(Columns, tuple_to_list(Row));
 make_proplist([Col|Cols], [Val|Vals]) ->
-	[{Col, Val} | make_proplist(Cols, Vals)];
+	Val2 = sql_bridge_stringify:maybe_string(Val),
+	[{Col, Val2} | make_proplist(Cols, Vals)];
 make_proplist([], []) ->
 	[].
 
@@ -97,7 +119,8 @@ make_map(Cols, Row) ->
 make_map([], [], Map) ->
 	Map;
 make_map([Col|Cols],[Val|Vals], Map) ->
-	NewMap = maps:put(Col, Val, Map),
+	Val2 = sql_bridge_stringify:maybe_string(Val),
+	NewMap = maps:put(Col, Val2, Map),
 	make_map(Cols, Vals, NewMap).
 
 -else.

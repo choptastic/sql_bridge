@@ -7,6 +7,7 @@
 
 -define(ENV(Var, Def), (sql_bridge_utils:get_env(Var, Def))).
 -define(ALIAS,  ?ENV(module_alias, db)).
+-define(STRINGIFY, ?ENV(stringify_binaries, false)).
 -define(ADAPTER,?ENV(adapter, sql_bridge_mysql)).
 -define(HOST,   ?ENV(host, "127.0.0.1")).
 -define(PORT,   ?ENV(port, undefined)).
@@ -78,6 +79,7 @@ db(DB) ->
 % @doc starts the actual database driver, if necessary
 start() ->
     application:start(sql_bridge),
+    ok = sql_bridge_alias:build_stringify(?STRINGIFY), 
     ok = sql_bridge_alias:build(?ALIAS),
     ok = ?ADAPTER:start(),
     ok.
@@ -201,16 +203,20 @@ plq(Q,ParamList) ->
     Db = db(),
     db_q(proplist,Db,Q,ParamList).
 
+
+%% TODO: This relies on mysql's insert...set syntax, which isn't valid.
 -spec pli(Table :: table(), PropList :: proplist()) -> insert_id().
 %% @doc Inserts a proplist into the table
 pli(Table,PropList) when is_atom(Table) ->
     pli(atom_to_list(Table),PropList);
 pli(Table,InitPropList) ->
     PropList = filter_fields(Table,InitPropList),
-    Sets = [[atom_to_list(F),"=",encode(V)] || {F,V} <- PropList],
-    Set = iolist_join(Sets,","),
-    SQL = ["insert into ",Table," set ",Set],
-    qi(SQL).
+    Fields0 = [atom_to_list(F) || {F,_} <- PropList],
+    Fields = iolist_join(Fields0, ","),
+    Values = [V || {_,V} <- PropList],
+    Placeholders = iolist_join(lists:duplicate(length(Values), "?"), ","),
+    SQL = ["insert into ",Table,"(",Fields,") values(",Placeholders,");"],
+    qi(SQL, Values).
 
 -spec plu(Table :: table(), PropList :: proplist()) -> affected_rows().
 %% @doc Updates a row from the proplist based on the key `Table ++ "id"` in the Table
