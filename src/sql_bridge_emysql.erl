@@ -1,10 +1,11 @@
--module(sql_bridge_mysql).
+-module(sql_bridge_emysql).
 -behaviour(sql_bridge_adapter).
 
 -export([
 	start/0,
-	connect/6,
+	connect/5,
 	query/3,
+	query/4,
 	encode/1
 ]).
 
@@ -12,7 +13,9 @@
 -type json() :: list().
 
 
-connect(DB, ConnPerPool, User, Pass, Host, Port) when is_atom(DB) ->
+connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
+	%% Emysql doesn't use Overflow, so if it maxes out, it's just maxed
+	ConnPerPool = sql_bridge_utils:get_env(connections_per_pool),
     emysql:add_pool(DB, ConnPerPool, User, Pass, Host, Port, atom_to_list(DB), utf8),
     DB.
 
@@ -23,37 +26,35 @@ start() ->
 
 -spec query(Type :: sql_bridge:return_type(),
 			Db :: sql_bridge:db(),
-			Q :: sql_bridge:sql()) ->  sql_bridge:insert_id() 
-                                     | sql_bridge:affected_rows()
-                                     | [list() | tuple()
-									 	| sql_bridge:t_dict()
-										| sql_bridge:proplist()].
+			Q :: sql_bridge:sql()) ->  sql_bridge:return_value().
 %% @doc Query from the specified Database pool (Db) This will connect to the
 %% specified Database Pool Type must be atoms: proplist, dict, list, or tuple
 %% Type can also be atom 'insert' in which case, it'll return the insert value
 query(Type,Db,Q) ->
-    try 
-        Res = emysql:execute(Db,Q),
-        case emysql:result_type(Res) of
-            result ->
-                format_result(Type,Res);
-            ok ->
-                case Type of
-                    insert -> emysql:insert_id(Res);
-                    _ ->      emysql:affected_rows(Res)
-                end;
-            error ->
-                error_logger:info_msg("Error in SQL: ~s~nRes: ~p~n",[Q, Res]),
-                %% if no connection in pool available ->
-                %%      NewDB = connect(),
-                %%      db_q(Type,NewDB,Q);
-                {error, Res}
-        end
+	try query_catched(Type, Db, Q)
     catch
         exit:pool_not_found ->
-            sql_bridge:connect(Db),
-            query(Type, Db, Q)
+			{error, no_pool}
     end.
+
+query_catched(Type, Db, Q) ->
+	Res = emysql:execute(Db,Q),
+	case emysql:result_type(Res) of
+		result ->
+			{ok, format_result(Type,Res)};
+		ok ->
+			case Type of
+				insert -> {ok, emysql:insert_id(Res)};
+				_ ->      {ok, emysql:affected_rows(Res)}
+			end;
+		error ->
+			error_logger:info_msg("Error in SQL: ~s~nRes: ~p~n",[Q, Res]),
+			{error, Res}
+	end.
+
+query(Type, Db, Q, ParamList) ->
+    NewQ = sql_bridge_utils:q_prep(Q,ParamList),
+    query(Type,Db,NewQ).
 
 -spec format_result(Type :: sql_bridge:return_type(),
 					Res :: sql_result()) -> list()
@@ -121,3 +122,4 @@ encode(true) -> <<"1">>;
 encode(false) -> <<"0">>;
 encode(L) when is_list(L) -> encode(unicode:characters_to_binary(L));
 encode(Other) -> emysql_conn:encode(Other, binary).
+

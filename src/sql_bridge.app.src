@@ -8,6 +8,7 @@
                 kernel,
                 stdlib
             ]},
-        {env, []}
+        {env, []},
+        {mod, {sql_bridge_app, []}}
     ]
 }.

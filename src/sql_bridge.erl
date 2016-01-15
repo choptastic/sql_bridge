@@ -5,7 +5,7 @@
 
 -define(WARNING(QueryText,Msg), error_logger:info_msg("QUERY WARNING: ~p~n~nQuery:~n~p~n~n",[Msg,QueryText])).
 
--define(ENV(Var, Def), (get_env(Var, Def))).
+-define(ENV(Var, Def), (sql_bridge_utils:get_env(Var, Def))).
 -define(ALIAS,  ?ENV(module_alias, db)).
 -define(ADAPTER,?ENV(adapter, sql_bridge_mysql)).
 -define(HOST,   ?ENV(host, "127.0.0.1")).
@@ -13,10 +13,6 @@
 -define(USER,   ?ENV(user, "root")).
 -define(PASS,   ?ENV(pass, "")).
 -define(LOOKUP, ?ENV(lookup, fun() -> throw({sql_bridge,undefined_lookup_method}) end )).
--define(CPP,    ?ENV(connections_per_pool, 10)).
-
-%% does not currently do anything
--define(AUTOGROW, application:get_env(sql_bridge, autogrow_pool, false)).
 
 -define(DB, sql_bridge_cached_db).
 
@@ -30,6 +26,8 @@
 -type proplist()    :: [{atom(), value()}].
 %-type json()        :: list().
 -type return_type() :: dict | list | proplist | tuple | insert | update.
+-type return_value() :: insert_id() | affected_rows()
+                        | [list() | tuple() | t_dict() | proplist()].
 
 -export_type([
     sql/0,
@@ -40,15 +38,9 @@
     insert_id/0,
     affected_rows/0,
     proplist/0,
-    return_type/0
+    return_type/0,
+    return_value/0
 ]).
-
--spec get_env(Var :: atom(), Def :: term()) -> term().
-get_env(Var, Def) ->
-    case application:get_env(sql_bridge, Var) of
-        undefined -> Def;
-        {ok, Val} -> Val
-    end.
 
 -spec lookup() -> db().
 % @doc Checks the configuration for how we determine the database we're using
@@ -85,7 +77,7 @@ db(DB) ->
 -spec start() -> ok.
 % @doc starts the actual database driver, if necessary
 start() ->
-    application:load(sql_bridge),
+    application:start(sql_bridge),
     ok = sql_bridge_alias:build(?ALIAS),
     ok = ?ADAPTER:start(),
     ok.
@@ -98,7 +90,7 @@ connect() ->
 -spec connect(db()) -> db().
 % @doc establishes a connection to the named database.
 connect(DB) when is_atom(DB) ->
-    ?ADAPTER:connect(DB, ?CPP, ?USER, ?PASS, ?HOST, ?PORT),
+    ok = ?ADAPTER:connect(DB, ?USER, ?PASS, ?HOST, ?PORT),
     DB.
 
 -spec pl(Table :: table(), Proplist :: proplist()) -> insert_id() | affected_rows().
@@ -234,7 +226,7 @@ plu(Table,KeyField,InitPropList) ->
 %% specified Database Pool Type must be atoms: proplist, dict, list, or tuple
 %% Type can also be atom 'insert' in which case, it'll return the insert value
 db_q(Type,Db,Q) ->
-    ?ADAPTER:query(Type, Db, Q).
+    db_q(Type, Db, Q, []).
 
 -spec db_q(Type :: return_type(), Db :: db(),
            Q :: sql(), ParamList :: [value()]) ->   insert_id() 
@@ -242,9 +234,14 @@ db_q(Type,Db,Q) ->
                                                   | [list() | t_dict() | tuple() | proplist()].
 %% @doc Same as db_q/3, but ParamList is safely inserted into the Query
 db_q(Type,Db,Q,ParamList) ->
-    NewQ = q_prep(Q,ParamList),
-    db_q(Type,Db,NewQ).
-
+    case ?ADAPTER:query(Type, Db, Q, ParamList) of
+        {ok, Response} ->
+            Response;
+        {error, no_pool} ->
+            error_logger:info_msg("First Request to Database '~p'. Attempting to connect.", [Db]),
+            connect(Db),
+            db_q(Type, Db, Q, ParamList)
+    end.
 
 -spec qi(Q :: sql()) -> insert_id().
 %% @doc A special Query function just for inserting.
@@ -330,7 +327,9 @@ ffl(Q) ->
 table_fields(Table) when is_atom(Table) ->
     table_fields(atom_to_list(Table));
 table_fields(Table) ->
-    [list_to_atom(F) || F <- ffl(["describe ",Table])].
+    DB = atom_to_list(db()),
+    SQL = "select column_name from information_schema.columns where table_schema='" ++ DB ++ " and table_name='" ++ Table ++ "';",
+    [list_to_atom(F) || F <- ffl(SQL)].
 
 -spec fields(Table :: table()) -> [atom()].
 fields(Table) ->
@@ -405,30 +404,6 @@ delete(Table,KeyField,ID) when is_atom(KeyField) ->
     delete(Table,atom_to_list(KeyField),ID);
 delete(Table,KeyField,ID) ->
     qu(["delete from ",Table," where ",KeyField,"=?"],[ID]).
-
--spec q_prep(Q :: sql(), ParamList :: [value()]) -> sql().
-%% @doc Prepares a query with Parameters, replacing all question marks with the
-%% values provided in ParamList.  Returns the newly generated SQL statement as
-%% an iolist
-q_prep(Q,[]) ->
-    Q;
-q_prep(Q,ParamList) ->
-    QParts = re:split(Q,"\\?",[{return,list}]),
-    NumParts = length(QParts)-1,
-    NumParams = length(ParamList),
-    if
-         NumParts == NumParams -> q_join(QParts,ParamList);
-         true -> 
-             throw({error, "Parameter Count in query is not consistent: ?'s = " ++ integer_to_list(NumParts) ++ ", Params = " ++ integer_to_list(NumParams),[{sql,Q},{params,ParamList}]})
-    end.
-
-q_join([QFirstPart|[QSecondPart|QRest]],[FirstParam|OtherParam]) when is_list(QFirstPart);is_list(QSecondPart) ->
-    NewFirst = [QFirstPart,encode(FirstParam),QSecondPart],
-    q_join([NewFirst|QRest],OtherParam);
-q_join([QFirstPart | [QRest]],[FirstParam | [] ]) when is_list(QFirstPart);is_list(QRest) ->
-    [QFirstPart,FirstParam,QRest];
-q_join([QFirstPart], []) ->
-    QFirstPart.
 
 -spec encode(V :: any()) -> binary().
 %% @doc Safely encodes text for insertion into a query.  Replaces the atoms
