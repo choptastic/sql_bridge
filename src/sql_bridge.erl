@@ -214,9 +214,26 @@ pli(Table,InitPropList) ->
     Fields0 = [atom_to_list(F) || {F,_} <- PropList],
     Fields = iolist_join(Fields0, ","),
     Values = [V || {_,V} <- PropList],
-    Placeholders = iolist_join(lists:duplicate(length(Values), "?"), ","),
+    Placeholders = create_placeholders(length(Values)),
     SQL = ["insert into ",Table,"(",Fields,") values(",Placeholders,");"],
     qi(SQL, Values).
+
+create_placeholders(NumFields) ->
+    case simple_bridge_utils:replacement_token() of
+        mysql -> create_mysql_placeholders(NumFields);
+        postgres -> create_postgres_placeholders(NumFields)
+    end.
+
+create_mysql_placeholders(NumFields) ->
+    iolist:join(lists:duplicate(NumFields, "?"), ",").
+
+create_postgres_placeholders(0) ->
+    [];
+create_postgres_placeholders(1) ->
+    "%1";
+create_postgres_placeholders(Field) ->
+    [create_postgres_placeholders(Field-1), ",%", integer_to_list(Field)].
+
 
 -spec plu(Table :: table(), PropList :: proplist()) -> affected_rows().
 %% @doc Updates a row from the proplist based on the key `Table ++ "id"` in the Table

@@ -8,8 +8,19 @@
     q_prep/2,
     q_join/2,
     binary_to_string/1,
-    stringify_binaries/0
+    stringify_binaries/0,
+    replacement_token/0 ,
+    placeholder_mysql_to_postgres/2,
+    placeholder_postgres_to_mysql/2
 ]).
+
+replacement_token() ->
+    case get_env(replacement_token_style, postgres) of
+        postgres -> postgres;
+        '$' -> postgres;
+        mysql -> mysql;
+        '?' -> mysql
+    end.
 
 stringify_binaries() ->
     get_env(stringify_binaries, false).
@@ -63,13 +74,7 @@ q_prep(Q,[]) ->
     Q;
 q_prep(Q,ParamList) ->
     QParts = re:split(Q,"\\?",[{return,list}]),
-    NumParts = length(QParts)-1,
-    NumParams = length(ParamList),
-    if
-         NumParts == NumParams -> q_join(QParts,ParamList);
-         true -> 
-             throw({error, "Parameter Count in query is not consistent: ?'s = " ++ integer_to_list(NumParts) ++ ", Params = " ++ integer_to_list(NumParams),[{sql,Q},{params,ParamList}]})
-    end.
+    ok = verify_same_param_count(Q, QParts, ParamList).
 
 q_join([QFirstPart|[QSecondPart|QRest]],[FirstParam|OtherParam])
         when is_list(QFirstPart);
@@ -82,3 +87,65 @@ q_join([QFirstPart | [QRest]],[FirstParam | [] ])
     [QFirstPart,FirstParam,QRest];
 q_join([QFirstPart], []) ->
     QFirstPart.
+
+
+%% Convert "?, ?, ?" to "%1, %2, %3"
+placeholder_mysql_to_postgres(Q, Params) ->
+    QParts = re:split(Q, "\\?", [{return, binary}]),
+    ok = verify_same_param_count(Q, QParts, Params),
+    {iolist_to_binary(postgres_join(QParts, 1)), Params}.
+
+
+postgres_join([QFirstPart], _) ->
+    QFirstPart;
+postgres_join([QFirstPart|QRest], ParamNum) ->
+    ParamToken = ["$", integer_to_list(ParamNum)],
+    [QFirstPart, ParamToken | postgres_join(QRest, ParamNum+1)].
+
+
+placeholder_postgres_to_mysql(Q0, OrigParams) ->
+    Q = binary_to_list(iolist_to_binary(Q0)),
+    {_NewQ, _NewParams} = p_to_m(Q, OrigParams, [], []).
+
+p_to_m([$$, X, Y | Rest], OrigParams, QAcc, ReorderedParams)
+        when X >= $1, X =< $9, Y >= $0, Y =< $9 ->
+    N = (X-$0)*10 + (Y-$0),
+    Param = lists:nth(N, OrigParams),
+    NewReorderedParams = [Param | ReorderedParams],
+    NewQAcc = [$? | QAcc],
+    p_to_m(Rest, OrigParams, NewQAcc, NewReorderedParams);
+p_to_m([$$, X | Rest], OrigParams, QAcc, ReorderedParams)
+        when X >= $1, X =< $9 ->
+    N = X-$0,
+    Param = lists:nth(N, OrigParams),
+    NewReorderedParams = [Param | ReorderedParams],
+    NewQAcc = [$? | QAcc],
+    p_to_m(Rest, OrigParams, NewQAcc, NewReorderedParams);
+p_to_m([X | Rest], OrigParams, QAcc, ReorderedParams) ->
+    NewQAcc = [X | QAcc],
+    p_to_m(Rest, OrigParams, NewQAcc, ReorderedParams);
+p_to_m([], _OrigParams, QAcc, ReorderedParams) ->
+    %% Here's the big hack. The last element of our new list is going to be a tuple containing the UnreversedParams
+    UnreversedParams = lists:reverse(ReorderedParams),
+    UnreversedQAcc = lists:reverse(QAcc),
+    {UnreversedQAcc, UnreversedParams}.
+
+
+   
+verify_same_param_count(Q, QParts, ParamList) ->
+    NumParts = length(QParts)-1,
+    NumParams = length(ParamList),
+    if
+         NumParts == NumParams ->
+            ok;
+         true ->
+            {error,
+             {query_param_count_inconsistent, [
+                {tokens, NumParts},
+                {params, NumParams},
+                {sql,Q},
+                {params,ParamList}
+             ]}
+            }
+    end.
+
