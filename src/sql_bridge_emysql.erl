@@ -6,6 +6,7 @@
 	connect/5,
 	query/3,
 	query/4,
+	schema_db_column/0,
 	encode/1
 ]).
 
@@ -15,7 +16,7 @@
 
 connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
 	%% Emysql doesn't use Overflow, so if it maxes out, it's just maxed
-	ConnPerPool = sql_bridge_utils:get_env(connections_per_pool),
+	ConnPerPool = sql_bridge_utils:get_env(connections_per_pool, 10),
     emysql:add_pool(DB, ConnPerPool, User, Pass, Host, Port, atom_to_list(DB), utf8),
 	ok.
 
@@ -24,21 +25,26 @@ start() ->
 	application:start(emysql),
     ok.
 
+query(Type, Db, Q) ->
+	query(Type, Db, Q, []).
+
 -spec query(Type :: sql_bridge:return_type(),
 			Db :: sql_bridge:db(),
 			Q :: sql_bridge:sql()) ->  sql_bridge:return_value().
 %% @doc Query from the specified Database pool (Db) This will connect to the
 %% specified Database Pool Type must be atoms: proplist, dict, list, or tuple
 %% Type can also be atom 'insert' in which case, it'll return the insert value
-query(Type,Db,Q) ->
-	try query_catched(Type, Db, Q)
+query(Type,Db,Q, ParamList) ->
+	try query_catched(Type, Db, Q, ParamList)
     catch
         exit:pool_not_found ->
 			{error, no_pool}
     end.
 
-query_catched(Type, Db, Q) ->
-	Res = emysql:execute(Db,Q),
+query_catched(Type, Db, Q, ParamList) ->
+	{Q2, ParamList2} = maybe_replace_tokens(Q, ParamList),	
+    NewQ = sql_bridge_utils:q_prep(Q2, ParamList2),
+	Res = emysql:execute(Db, NewQ),
 	case emysql:result_type(Res) of
 		result ->
 			{ok, format_result(Type,Res)};
@@ -52,9 +58,8 @@ query_catched(Type, Db, Q) ->
 			{error, Res}
 	end.
 
-query(Type, Db, Q, ParamList) ->
-    NewQ = sql_bridge_utils:q_prep(Q,ParamList),
-    query(Type,Db,NewQ).
+maybe_replace_tokens(Q, ParamList) ->
+	sql_bridge_mysql_otp:maybe_replace_tokens(Q, ParamList).
 
 -spec format_result(Type :: sql_bridge:return_type(),
 					Res :: sql_result()) -> list()
@@ -114,6 +119,9 @@ format_proplist_result(Json) ->
 -spec format_dict_result(Json :: json()) -> [sql_bridge:t_dict()].
 format_dict_result(Json) ->
     [dict:from_list(PL) || PL <- format_proplist_result(Json)].
+
+schema_db_column() ->
+	"table_schema".
 
 -spec encode(V :: any()) -> binary().
 %% @doc Safely encodes text for insertion into a query.  Replaces the atoms

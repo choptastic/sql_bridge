@@ -10,8 +10,9 @@
     binary_to_string/1,
     stringify_binaries/0,
     replacement_token/0 ,
-    placeholder_mysql_to_postgres/2,
-    placeholder_postgres_to_mysql/2
+    token_mysql_to_postgres/2,
+    token_postgres_to_mysql/2,
+    create_placeholders/1
 ]).
 
 replacement_token() ->
@@ -74,7 +75,8 @@ q_prep(Q,[]) ->
     Q;
 q_prep(Q,ParamList) ->
     QParts = re:split(Q,"\\?",[{return,list}]),
-    ok = verify_same_param_count(Q, QParts, ParamList).
+    ok = verify_same_param_count(Q, QParts, ParamList),
+    q_join(QParts, ParamList).
 
 q_join([QFirstPart|[QSecondPart|QRest]],[FirstParam|OtherParam])
         when is_list(QFirstPart);
@@ -90,7 +92,7 @@ q_join([QFirstPart], []) ->
 
 
 %% Convert "?, ?, ?" to "%1, %2, %3"
-placeholder_mysql_to_postgres(Q, Params) ->
+token_mysql_to_postgres(Q, Params) ->
     QParts = re:split(Q, "\\?", [{return, binary}]),
     ok = verify_same_param_count(Q, QParts, Params),
     {iolist_to_binary(postgres_join(QParts, 1)), Params}.
@@ -103,7 +105,7 @@ postgres_join([QFirstPart|QRest], ParamNum) ->
     [QFirstPart, ParamToken | postgres_join(QRest, ParamNum+1)].
 
 
-placeholder_postgres_to_mysql(Q0, OrigParams) ->
+token_postgres_to_mysql(Q0, OrigParams) ->
     Q = binary_to_list(iolist_to_binary(Q0)),
     {_NewQ, _NewParams} = p_to_m(Q, OrigParams, [], []).
 
@@ -130,7 +132,6 @@ p_to_m([], _OrigParams, QAcc, ReorderedParams) ->
     UnreversedQAcc = lists:reverse(QAcc),
     {UnreversedQAcc, UnreversedParams}.
 
-
    
 verify_same_param_count(Q, QParts, ParamList) ->
     NumParts = length(QParts)-1,
@@ -149,3 +150,23 @@ verify_same_param_count(Q, QParts, ParamList) ->
             }
     end.
 
+%% returns a list of placeholders in order
+create_placeholders(NumFields) ->
+    case replacement_token() of
+        mysql -> create_mysql_placeholders(NumFields);
+        postgres -> create_postgres_placeholders(NumFields)
+    end.
+
+create_mysql_placeholders(NumFields) ->
+    lists:duplicate(NumFields, "?").
+
+create_postgres_placeholders(0) ->
+    [];
+create_postgres_placeholders(NumFields) ->
+    create_postgres_placeholders(NumFields, 1).
+
+create_postgres_placeholders(NumFields, Target) when Target > NumFields->
+    [];
+create_postgres_placeholders(NumFields, Target) ->
+    Field = "%" ++ integer_to_list(Target),
+    [Field | create_postgres_placeholders(NumFields, Target+1)].

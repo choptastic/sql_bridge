@@ -214,26 +214,10 @@ pli(Table,InitPropList) ->
     Fields0 = [atom_to_list(F) || {F,_} <- PropList],
     Fields = iolist_join(Fields0, ","),
     Values = [V || {_,V} <- PropList],
-    Placeholders = create_placeholders(length(Values)),
-    SQL = ["insert into ",Table,"(",Fields,") values(",Placeholders,");"],
+    Placeholders = sql_bridge_utils:create_placeholders(length(Values)),
+    PlaceholderString = iolist_join(Placeholders, ","),
+    SQL = ["insert into ",Table,"(",Fields,") values(",PlaceholderString,");"],
     qi(SQL, Values).
-
-create_placeholders(NumFields) ->
-    case simple_bridge_utils:replacement_token() of
-        mysql -> create_mysql_placeholders(NumFields);
-        postgres -> create_postgres_placeholders(NumFields)
-    end.
-
-create_mysql_placeholders(NumFields) ->
-    iolist:join(lists:duplicate(NumFields, "?"), ",").
-
-create_postgres_placeholders(0) ->
-    [];
-create_postgres_placeholders(1) ->
-    "%1";
-create_postgres_placeholders(Field) ->
-    [create_postgres_placeholders(Field-1), ",%", integer_to_list(Field)].
-
 
 -spec plu(Table :: table(), PropList :: proplist()) -> affected_rows().
 %% @doc Updates a row from the proplist based on the key `Table ++ "id"` in the Table
@@ -383,8 +367,12 @@ table_fields(Table) when is_atom(Table) ->
     table_fields(atom_to_list(Table));
 table_fields(Table) ->
     DB = atom_to_list(db()),
-    SQL = "select column_name from information_schema.columns where table_schema='" ++ DB ++ " and table_name='" ++ Table ++ "';",
-    [list_to_atom(F) || F <- ffl(SQL)].
+    [T1, T2] = sql_bridge_utils:create_placeholders(2),
+    DBCol = ?ADAPTER:schema_db_column(),
+    SQL = [<<"select column_name
+             from information_schema.columns
+             where ">>,DBCol,<<"=">>,T1,<<" and table_name=">>,T2],
+    [list_to_atom(F) || F <- ffl(SQL, [DB, Table])].
 
 -spec fields(Table :: table()) -> [atom()].
 fields(Table) ->
@@ -434,7 +422,8 @@ field(Table,Field,IDField,IDValue) when is_atom(Field) ->
 field(Table,Field,IDField,IDValue) when is_atom(IDField) ->
     field(Table,Field,atom_to_list(IDField),IDValue);
 field(Table,Field,IDField,IDValue) ->
-    fffr(["select ",Field," from ",Table," where ",IDField,"= ?"],[IDValue]).
+    [Token] = sql_bridge_utils:create_placeholders(1),
+    fffr(["select ",Field," from ",Table," where ",IDField,"= ",Token],[IDValue]).
 
 -spec field(Table :: table(), Field :: field(), Value :: value()) -> value() | not_found.
 %% @doc This does the same as above, but uses Table ++ "id" for the idfield
@@ -458,7 +447,8 @@ delete(Table,KeyField,ID) when is_atom(Table) ->
 delete(Table,KeyField,ID) when is_atom(KeyField) ->
     delete(Table,atom_to_list(KeyField),ID);
 delete(Table,KeyField,ID) ->
-    qu(["delete from ",Table," where ",KeyField,"=?"],[ID]).
+    [Token] = sql_bridge_utils:create_placeholders(1),
+    qu(["delete from ",Table," where ",KeyField,"=",Token],[ID]).
 
 -spec encode(V :: any()) -> binary().
 %% @doc Safely encodes text for insertion into a query.  Replaces the atoms

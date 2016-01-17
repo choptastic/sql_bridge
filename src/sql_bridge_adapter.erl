@@ -16,4 +16,6 @@
 				Q :: sql_bridge:sql(),
 			    ParamList :: [sql_bridge:value()]) -> {ok, sql_bridge:return_value()} | {error, no_pool | any()}.
 
+-callback schema_db_column() -> ColumnName :: string().
+
 -callback encode(V :: any()) -> binary().

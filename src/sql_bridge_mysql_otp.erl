@@ -1,4 +1,4 @@
--module(sql_bridge_epgsql).
+-module(sql_bridge_mysql_otp).
 -behaviour(sql_bridge_adapter).
 -include("compat.hrl").
 
@@ -6,23 +6,26 @@
 		 connect/5,
 		 query/3,
 		 query/4,
- 		 schema_db_column/0,
+		 schema_db_column/0,
 		 encode/1]).
+
+%% 
+-export([maybe_replace_tokens/2]).
+
 
 start() ->
 	application:start(poolboy),
-	%application:start(epgsql),
 	ok.
 
 connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
 	WorkerArgs = [
 		{database, atom_to_list(DB)},
-		{hostname, Host},
-		{username, User},
+		{host, Host},
+		{user, User},
 		{password, Pass},
 		{port, Port}
 	],
-	sql_bridge_utils:start_poolboy_pool(DB, WorkerArgs, sql_bridge_epgsql_worker),
+	sql_bridge_utils:start_poolboy_pool(DB, WorkerArgs, mysql),
 	ok.
 
 query(Type, DB, Q) ->
@@ -38,16 +41,15 @@ query(Type, DB, Q, ParamList) ->
 query_catched(Type, DB, Q, ParamList) ->
 	{Q2, ParamList2} = maybe_replace_tokens(Q, ParamList),
 	ToRun = fun(Worker) ->
-		%% calls sql_bridge_epgsql_worker:handle_call()
-		gen_server:call(Worker, {equery, Q2, ParamList2})
+		mysql:query(Worker, Q2, ParamList2)
 	end,
 	Res = sql_bridge_utils:with_poolboy_pool(DB, ToRun),
 	{ok, format_result(Type, Res)}.
 	
 maybe_replace_tokens(Q, ParamList) ->
 	case sql_bridge_utils:replacement_token() of
-		postgres -> {Q, ParamList};
-		mysql -> sql_bridge_utils:token_mysql_to_postgres(Q, ParamList)
+		mysql -> {Q, ParamList};
+		postgres -> sql_bridge_utils:token_postgres_to_mysql(Q, ParamList)
 	end.
 
 format_result(UID, {ok, Count}) when UID=:=update;
@@ -70,7 +72,7 @@ format_tuples(Rows) ->
 		true ->
 			[list_to_tuple(format_list(Row)) || Row <- Rows];
 		false ->
-			Rows
+			[list_to_tuple(Row) || Row <- Rows]
 	end.
 
 format_lists(Rows) ->
@@ -78,12 +80,11 @@ format_lists(Rows) ->
 		true ->
 			[format_list(Row) || Row <- Rows];
 		false ->
-			[tuple_to_list(Row) || Row <- Rows]
+			Rows
 	end.
 
-format_list(Row) when is_tuple(Row) ->
-	Row2 = tuple_to_list(Row),
-	[sql_bridge_stringify:maybe_string(V) || V <- Row2].
+format_list(Row) when is_list(Row) ->
+	[sql_bridge_stringify:maybe_string(V) || V <- Row].
 
 format_proplists(Columns, Rows) ->
 	ColNames = extract_colnames(Columns),
@@ -102,11 +103,9 @@ make_dict([Col|Cols], [Val|Vals], Dict) ->
 	Val2 = sql_bridge_stringify:maybe_string(Val),
 	NewDict = dict:store(Col, Val2, Dict),
 	make_dict(Cols, Vals, NewDict).
-
 	
 extract_colnames(Columns) ->
-	[list_to_atom(binary_to_list(CN)) || {column, CN, _, _, _, _} <- Columns].
-
+	[list_to_atom(binary_to_list(CN)) || CN <- Columns].
 
 make_proplist(Columns, Row) when is_tuple(Row) ->
 	make_proplist(Columns, tuple_to_list(Row));
@@ -122,7 +121,7 @@ format_maps(Columns, Rows) ->
 	[make_map(ColNames, Row) || Row <- Rows].
 
 make_map(Cols, Row) ->
-	make_map(Cols, tuple_to_list(Row), maps:new()).
+	make_map(Cols, Row, maps:new()).
 
 make_map([], [], Map) ->
 	Map;
@@ -137,7 +136,7 @@ format_maps(_,_) ->
 -endif.
 
 schema_db_column() ->
-	"table_catalog".
+	"table_schema".
 
 encode(Val) ->
 	Val.
