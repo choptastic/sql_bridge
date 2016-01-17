@@ -28,12 +28,6 @@ start() ->
 query(Type, Db, Q) ->
 	query(Type, Db, Q, []).
 
--spec query(Type :: sql_bridge:return_type(),
-			Db :: sql_bridge:db(),
-			Q :: sql_bridge:sql()) ->  sql_bridge:return_value().
-%% @doc Query from the specified Database pool (Db) This will connect to the
-%% specified Database Pool Type must be atoms: proplist, dict, list, or tuple
-%% Type can also be atom 'insert' in which case, it'll return the insert value
 query(Type,Db,Q, ParamList) ->
 	try query_catched(Type, Db, Q, ParamList)
     catch
