@@ -318,17 +318,16 @@ they only return a single row. They all start with `fr` for "first record"
 ### v0.1.0
   * Add Maps support (with appropriate macros) to prevent compiling maps
     functions pre-Erlang-17
-  * Add PostgreSQL support
-  * Add PostgreSQL-style variable replacement to be usable for either database.
-    Example: `db:q("select * from mytab where a=$1 and b=$1", [123,
-	"somestring"])`
   * Add proper [transaction support](https://github.com/choptastic/sql_bridge/issues/2)
-  * Add dynamic pool resizing (`emysql:increment_pool_size` and
-    `emysql:decrement_pool_size`)
-  * Switch away from Emysql to a driver that properly supports transactions.
+  * New API functions for better function naming:
+     + `db:list`, `db:lists` (replaces `db:q` and `db:fr`)
+     + `db:tuple`, `db:tuples` (replaces `db:tq` and `db:tfr`)
+     + `db:proplist`, `db:proplists` (replaces `db:plq` and `db:plfr`)
+     + `db:map`, `db:maps` (replaces `db:mq` and `db:mfr`)
+     + `db:dict`, `db:dicts` (replaces `db:dq` and `db:dfr`)
+  * Test suite
 
 ### v0.2.0 
-  * Test suite
   * Maybe Experiment with [record-based querys](https://github.com/choptastic/sql_bridge/issues/1)
 
 ## About
