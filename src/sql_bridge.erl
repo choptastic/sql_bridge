@@ -14,6 +14,7 @@
 -define(USER,   ?ENV(user, "root")).
 -define(PASS,   ?ENV(pass, "")).
 -define(LOOKUP, ?ENV(lookup, fun() -> throw({sql_bridge,undefined_lookup_method}) end )).
+-define(CONNECTION_ATTEMPTS, ?ENV(connection_attempts, 5)).
 
 -define(DB, sql_bridge_cached_db).
 
@@ -233,11 +234,19 @@ plu(Table,KeyField,InitPropList) when is_atom(Table) ->
     plu(atom_to_list(Table),KeyField,InitPropList);
 plu(Table,KeyField,InitPropList) ->
     PropList = filter_fields(Table,InitPropList),
-    KeyValue = proplists:get_value(KeyField,PropList),
-    Sets = [ [atom_to_list(F),"=",encode(V)] || {F,V} <- PropList,F /= KeyField],
+   
+    SetFields = [atom_to_list(F) || {F, _} <- PropList, F =/= KeyField],
+    SetPlaceholders = sql_bridge_util:create_placeholders(length(SetFields)),
+    Sets = [ [F,"=",PH] || {F, PH} <- lists:zip(SetFields, SetPlaceholders) ],
     Set = iolist_join(Sets,","),
-    SQL = ["update ",Table," set ",Set," where ",atom_to_list(KeyField),"=",encode(KeyValue)],
-    q(SQL),
+   
+    SetValues = [V || {F, V} <- PropList, F =/= KeyField],
+    KeyValue = proplists:get_value(KeyField,PropList),
+    KeyPlaceholder = sql_bridge_util:create_placeholder(length(SetFields)+1),
+    Params = SetValues ++ [KeyValue],
+
+    SQL = ["update ",Table," set ",Set," where ",atom_to_list(KeyField),"=",KeyPlaceholder],
+    q(SQL, [Params]),
     KeyValue.
 
 -spec db_q(Type :: return_type(), Db :: db(), Q :: sql()) ->  insert_id() 
@@ -255,13 +264,21 @@ db_q(Type,Db,Q) ->
                                                   | [list() | t_dict() | tuple() | proplist()].
 %% @doc Same as db_q/3, but ParamList is safely inserted into the Query
 db_q(Type,Db,Q,ParamList) ->
+    ParamList2 = sanitize_params(ParamList),
+    db_q(Type, Db, Q, ParamList2, ?CONNECTION_ATTEMPTS).
+
+
+db_q(_Type, Db, _Q, _ParamList, _RemainingAttempts=0) ->
+    error_logger:error_msg("Unable to connect to pool '~p' after ~p attempts", [Db, ?CONNECTION_ATTEMPTS]),
+    throw({error, unable_to_connect_to_pool, Db});
+db_q(Type, Db, Q, ParamList, RemainingAttempts) ->
     case ?ADAPTER:query(Type, Db, Q, ParamList) of
         {ok, Response} ->
             Response;
         {error, no_pool} ->
-            error_logger:info_msg("First Request to Database '~p'. Attempting to connect.", [Db]),
+            error_logger:info_msg("No pool for '~p'. Attempting to connect.", [Db]),
             connect(Db),
-            db_q(Type, Db, Q, ParamList)
+            db_q(Type, Db, Q, ParamList, RemainingAttempts-1)
     end.
 
 -spec qi(Q :: sql()) -> insert_id().
@@ -422,7 +439,7 @@ field(Table,Field,IDField,IDValue) when is_atom(Field) ->
 field(Table,Field,IDField,IDValue) when is_atom(IDField) ->
     field(Table,Field,atom_to_list(IDField),IDValue);
 field(Table,Field,IDField,IDValue) ->
-    [Token] = sql_bridge_utils:create_placeholders(1),
+    Token = sql_bridge_utils:create_placeholder(1),
     fffr(["select ",Field," from ",Table," where ",IDField,"= ",Token],[IDValue]).
 
 -spec field(Table :: table(), Field :: field(), Value :: value()) -> value() | not_found.
@@ -447,14 +464,23 @@ delete(Table,KeyField,ID) when is_atom(Table) ->
 delete(Table,KeyField,ID) when is_atom(KeyField) ->
     delete(Table,atom_to_list(KeyField),ID);
 delete(Table,KeyField,ID) ->
-    [Token] = sql_bridge_utils:create_placeholders(1),
+    Token = sql_bridge_utils:create_placeholder(1),
     qu(["delete from ",Table," where ",KeyField,"=",Token],[ID]).
+
+sanitize(V) when is_list(V) ->
+    sanitize(unicode:characters_to_binary(V));
+sanitize(V) ->
+    V.
+
+sanitize_params(L) ->
+    [sanitize(X) || X <- L].
+
 
 -spec encode(V :: any()) -> binary().
 %% @doc Safely encodes text for insertion into a query.  Replaces the atoms
 %% 'true' and 'false' with <<"1">> and <<"0">> respectively.
-encode(V) ->
-    ?ADAPTER:encode(V).
+encode(Other) ->
+    ?ADAPTER:encode(sanitize(Other)).
 
 remove_wrapping_quotes(Bin) when is_binary(Bin) ->
     binary_part(Bin, 1, byte_size(Bin)-2);

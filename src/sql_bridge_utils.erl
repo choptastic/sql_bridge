@@ -12,7 +12,8 @@
     replacement_token/0 ,
     token_mysql_to_postgres/2,
     token_postgres_to_mysql/2,
-    create_placeholders/1
+    create_placeholders/1,
+    create_placeholder/1
 ]).
 
 replacement_token() ->
@@ -68,7 +69,7 @@ binary_to_string(Other) ->
     Other.
 
 %%-spec q_prep(Q :: sql(), ParamList :: [value()]) -> sql().
-%% @doc Prepares a query with Parameters, replacing all question marks with the
+%   % @doc Prepares a query with Parameters, replacing all question marks with the
 %% values provided in ParamList.  Returns the newly generated SQL statement as
 %% an iolist
 q_prep(Q,[]) ->
@@ -130,7 +131,7 @@ p_to_m([], _OrigParams, QAcc, ReorderedParams) ->
     %% Here's the big hack. The last element of our new list is going to be a tuple containing the UnreversedParams
     UnreversedParams = lists:reverse(ReorderedParams),
     UnreversedQAcc = lists:reverse(QAcc),
-    {UnreversedQAcc, UnreversedParams}.
+     {UnreversedQAcc, UnreversedParams}.
 
    
 verify_same_param_count(Q, QParts, ParamList) ->
@@ -152,21 +153,20 @@ verify_same_param_count(Q, QParts, ParamList) ->
 
 %% returns a list of placeholders in order
 create_placeholders(NumFields) ->
+    Fun = case replacement_token() of
+        mysql -> fun create_mysql_placeholder/1;
+        postgres -> fun create_postgres_placeholder/1
+    end,
+    [Fun(X) || X <- lists:seq(1, NumFields)].
+
+create_placeholder(Num) ->
     case replacement_token() of
-        mysql -> create_mysql_placeholders(NumFields);
-        postgres -> create_postgres_placeholders(NumFields)
+        mysql -> create_mysql_placeholder(Num);
+        postgres -> create_postgres_placeholder(Num)
     end.
 
-create_mysql_placeholders(NumFields) ->
-    lists:duplicate(NumFields, "?").
+create_mysql_placeholder(_) ->
+    "?".
 
-create_postgres_placeholders(0) ->
-    [];
-create_postgres_placeholders(NumFields) ->
-    create_postgres_placeholders(NumFields, 1).
-
-create_postgres_placeholders(NumFields, Target) when Target > NumFields->
-    [];
-create_postgres_placeholders(NumFields, Target) ->
-    Field = "%" ++ integer_to_list(Target),
-    [Field | create_postgres_placeholders(NumFields, Target+1)].
+create_postgres_placeholder(Num) ->
+    "%" ++ integer_to_list(Num).

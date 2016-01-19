@@ -139,5 +139,15 @@ format_maps(_,_) ->
 schema_db_column() ->
 	"table_catalog".
 
-encode(Val) ->
-	Val.
+encode(B) when is_binary(B) ->	
+	escape_binary(B, <<>>);
+encode(V) ->
+	V.
+
+escape_binary(<<X/utf8, Rest/binary>>, Acc) when X==$' ->
+	escape_binary(Rest, <<Acc/binary,"''">>);
+escape_binary(<<X/utf8, Rest/binary>>, Acc) ->
+	escape_binary(Rest, <<Acc/binary,X/utf8>>);
+escape_binary(<<>>, Acc) ->
+	Acc.
+
