@@ -41,7 +41,12 @@ query(Type, DB, Q, ParamList) ->
 query_catched(Type, DB, Q, ParamList) ->
 	{Q2, ParamList2} = maybe_replace_tokens(Q, ParamList),
 	ToRun = fun(Worker) ->
-		mysql:query(Worker, Q2, ParamList2)
+		Res = mysql:query(Worker, Q2, ParamList2),
+		case Type of
+			insert -> mysql:insert_id(Worker);
+			update -> mysql:affected_rows(Worker);
+			_ -> Res
+		end
 	end,
 	Res = sql_bridge_utils:with_poolboy_pool(DB, ToRun),
 	{ok, format_result(Type, Res)}.
@@ -52,10 +57,12 @@ maybe_replace_tokens(Q, ParamList) ->
 		postgres -> sql_bridge_utils:token_postgres_to_mysql(Q, ParamList)
 	end.
 
-format_result(UID, {ok, Count}) when UID=:=update;
+format_result(UID, Count) when UID=:=update;
 									 UID=:=insert;
 									 UID=:=delete ->
 	Count;
+format_result(_, ok) ->
+	ok;
 format_result(tuple, {ok, _Columns, Rows}) ->
 	format_tuples(Rows);
 format_result(list, {ok, _Columns, Rows}) ->
@@ -94,8 +101,8 @@ format_dicts(Columns, Rows) ->
 	ColNames = extract_colnames(Columns),
 	[make_dict(ColNames, Row) || Row <- Rows].
 
-make_dict(Cols, Row) when is_tuple(Row) ->
-	make_dict(Cols, tuple_to_list(Row), dict:new()).
+make_dict(Cols, Row) when is_list(Row) ->
+	make_dict(Cols, Row, dict:new()).
 
 make_dict([], [], Dict) ->
 	Dict;

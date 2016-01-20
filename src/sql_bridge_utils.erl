@@ -13,7 +13,8 @@
     token_mysql_to_postgres/2,
     token_postgres_to_mysql/2,
     create_placeholders/1,
-    create_placeholder/1
+    create_placeholder/1,
+    to_atom/1
 ]).
 
 replacement_token() ->
@@ -169,4 +170,9 @@ create_mysql_placeholder(_) ->
     "?".
 
 create_postgres_placeholder(Num) ->
-    "%" ++ integer_to_list(Num).
+    "$" ++ integer_to_list(Num).
+
+to_atom(B) when is_binary(B) ->
+    list_to_atom(binary_to_list(B));
+to_atom(A) when is_list(A) ->
+    list_to_atom(A).

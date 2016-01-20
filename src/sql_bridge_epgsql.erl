@@ -28,32 +28,49 @@ connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
 query(Type, DB, Q) ->
 	query(Type, DB, Q, []).
 
+
 query(Type, DB, Q, ParamList) ->
 	try query_catched(Type, DB, Q, ParamList)
 	catch
 		exit:{noproc, _} ->
 			{error, no_pool}
 	end.
-
+	
 query_catched(Type, DB, Q, ParamList) ->
 	{Q2, ParamList2} = maybe_replace_tokens(Q, ParamList),
 	ToRun = fun(Worker) ->
 		%% calls sql_bridge_epgsql_worker:handle_call()
-		gen_server:call(Worker, {equery, Q2, ParamList2})
+		InnerRes = gen_server:call(Worker, {equery, Q2, ParamList2}),
+		case {Type, InnerRes} of
+			{insert, {ok, _Count}} ->
+				InsertRes = gen_server:call(Worker, {equery, <<"select lastval();">>, []}),
+				{ok, format_insert_id(InsertRes)};
+			_ ->
+				InnerRes
+		end
 	end,
+
 	Res = sql_bridge_utils:with_poolboy_pool(DB, ToRun),
 	{ok, format_result(Type, Res)}.
 	
+format_insert_id({ok, _Columns, Rows}) ->
+	case format_lists(Rows) of
+		[[Insertid]] -> Insertid;
+		_ -> undefined
+	end.
+
 maybe_replace_tokens(Q, ParamList) ->
 	case sql_bridge_utils:replacement_token() of
 		postgres -> {Q, ParamList};
 		mysql -> sql_bridge_utils:token_mysql_to_postgres(Q, ParamList)
 	end.
 
-format_result(UID, {ok, Count}) when UID=:=update;
-									 UID=:=insert;
-									 UID=:=delete ->
+format_result(_Type, {ok, Count}) ->
 	Count;
+format_result(insert, {ok, _Count, _Columns, Rows}) ->
+	element(1,hd(Rows));
+format_result(Type, {ok, _Count, Columns, Rows}) ->
+	format_result(Type, {ok, Columns, Rows});
 format_result(tuple, {ok, _Columns, Rows}) ->
 	format_tuples(Rows);
 format_result(list, {ok, _Columns, Rows}) ->

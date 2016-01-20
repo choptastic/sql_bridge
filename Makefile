@@ -1,3 +1,5 @@
+.PHONY: test
+
 all: get-deps compile
 
 get-deps:
@@ -9,6 +11,8 @@ compile:
 run:
 	erl -pa ebin/ -pa deps/*/ebin/ -eval "sql_bridge:start()" -config sample.config
 
+test:
+	./rebar skip_deps=true eunit
 
 DEPS_PLT=$(CURDIR)/.deps_plt
 DEPS=erts kernel stdlib crypto sasl

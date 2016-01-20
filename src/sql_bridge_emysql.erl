@@ -71,7 +71,9 @@ format_result(Type,Res) ->
         proplist ->
             format_proplist_result(Json);
         dict ->
-            format_dict_result(Json)
+            format_dict_result(Json);
+		map ->
+			format_map_results(Json)
     end.
 
 -spec format_value(V :: term()) -> undefined | string() | any().
@@ -114,6 +116,9 @@ format_proplist_result(Json) ->
 format_dict_result(Json) ->
     [dict:from_list(PL) || PL <- format_proplist_result(Json)].
 
+format_map_results(Json) ->
+    [maps:from_list(PL) || PL <- format_proplist_result(Json)].
+
 schema_db_column() ->
 	"table_schema".
 
@@ -122,6 +127,5 @@ schema_db_column() ->
 %% 'true' and 'false' with <<"1">> and <<"0">> respectively.
 encode(true) -> <<"1">>;
 encode(false) -> <<"0">>;
-encode(L) when is_list(L) -> encode(unicode:characters_to_binary(L));
 encode(Other) -> emysql_conn:encode(Other, binary).
 

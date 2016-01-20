@@ -236,17 +236,17 @@ plu(Table,KeyField,InitPropList) ->
     PropList = filter_fields(Table,InitPropList),
    
     SetFields = [atom_to_list(F) || {F, _} <- PropList, F =/= KeyField],
-    SetPlaceholders = sql_bridge_util:create_placeholders(length(SetFields)),
+    SetPlaceholders = sql_bridge_utils:create_placeholders(length(SetFields)),
     Sets = [ [F,"=",PH] || {F, PH} <- lists:zip(SetFields, SetPlaceholders) ],
     Set = iolist_join(Sets,","),
    
     SetValues = [V || {F, V} <- PropList, F =/= KeyField],
     KeyValue = proplists:get_value(KeyField,PropList),
-    KeyPlaceholder = sql_bridge_util:create_placeholder(length(SetFields)+1),
+    KeyPlaceholder = sql_bridge_utils:create_placeholder(length(SetFields)+1),
     Params = SetValues ++ [KeyValue],
 
     SQL = ["update ",Table," set ",Set," where ",atom_to_list(KeyField),"=",KeyPlaceholder],
-    q(SQL, [Params]),
+    q(SQL, Params),
     KeyValue.
 
 -spec db_q(Type :: return_type(), Db :: db(), Q :: sql()) ->  insert_id() 
@@ -344,6 +344,17 @@ tfr(Q,ParamList) ->
         [First|_] -> First
     end.
 
+-spec dfr(Q :: sql()) -> t_dict() | not_found.
+dfr(Q) ->
+    dfr(Q, []).
+
+-spec dfr(Q :: sql(), ParamList :: [value()]) -> t_dict() | not_found.
+dfr(Q, ParamList) ->
+    case dq(Q, ParamList) of
+        [] -> not_found;
+        [First|_] -> First
+    end.
+
 %% fr = First Record
 -spec fr(Q :: sql(), ParamList :: [value()]) -> list() | not_found.
 fr(Q,ParamList) ->
@@ -389,7 +400,7 @@ table_fields(Table) ->
     SQL = [<<"select column_name
              from information_schema.columns
              where ">>,DBCol,<<"=">>,T1,<<" and table_name=">>,T2],
-    [list_to_atom(F) || F <- ffl(SQL, [DB, Table])].
+    [sql_bridge_utils:to_atom(F) || F <- ffl(SQL, [DB, Table])].
 
 -spec fields(Table :: table()) -> [atom()].
 fields(Table) ->
@@ -469,6 +480,8 @@ delete(Table,KeyField,ID) ->
 
 sanitize(V) when is_list(V) ->
     sanitize(unicode:characters_to_binary(V));
+sanitize(A) when is_atom(A) ->
+    sanitize(atom_to_list(A));
 sanitize(V) ->
     V.
 
