@@ -7,7 +7,10 @@
 		 query/3,
 		 query/4,
  		 schema_db_column/0,
-		 encode/1]).
+		 encode/1,
+		 start_transaction/1,
+		 commit_transaction/1,
+		 with_transaction/2]).
 
 start() ->
 	application:start(poolboy),
@@ -24,6 +27,23 @@ connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
 	],
 	sql_bridge_utils:start_poolboy_pool(DB, WorkerArgs, sql_bridge_epgsql_worker),
 	ok.
+
+start_transaction(DB) ->
+	Worker = sql_bridge_utils:checkout_pool(DB),
+	gen_server:call(Worker, {squery, "BEGIN"}),
+	erlang:put({sql_bridge_current_pool, DB}, Worker),
+	ok.
+
+commit_transaction(DB) ->
+	Worker = erlang:get({sql_bridge_current_pool, DB}),
+	gen_server:call(Worker, {squery, "COMMIT"}),
+	sql_bridge_utils:checkin_pool(DB, Worker),
+	ok.
+
+with_transaction(DB, Fun) ->
+	start_transaction(DB),
+	Fun(),
+	commit_transaction(DB).
 
 query(Type, DB, Q) ->
 	query(Type, DB, Q, []).

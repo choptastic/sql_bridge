@@ -140,6 +140,18 @@ filter_fields(Table,PropList) ->
     TableFields = table_fields(Table),
     [{K,V} || {K,V} <- PropList,lists:member(atomize(K),TableFields)].
 
+-spec trans(DB :: db(), Fun :: fun()) -> ok.
+trans(DB, Fun) ->
+    ?ADAPTER:with_transaction(DB, Fun).
+
+-spec start_trans(DB :: db()) -> ok.
+start_trans(DB) ->
+    ?ADAPTER:start_transaction(DB).
+
+-spec commit(DB :: db()) -> ok.
+commit(DB) ->
+    ?ADAPTER:commit_transaction(DB).
+
 -spec q(Q :: sql()) -> [list()].
 %% @doc Run the SQL query `Q` and return a list of lists, with each inner list
 %% representing one record in the return set.

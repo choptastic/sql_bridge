@@ -14,7 +14,9 @@
     token_postgres_to_mysql/2,
     create_placeholders/1,
     create_placeholder/1,
-    to_atom/1
+    to_atom/1,
+    checkout_pool/1,
+    checkin_pool/1
 ]).
 
 replacement_token() ->
@@ -47,11 +49,26 @@ get_env(Var, Def) ->
     end.
 
 with_poolboy_pool(DB, Fun) ->
-    Worker = poolboy:checkout(DB),
-    Return = Fun(Worker),
-    poolboy:checkin(DB, Worker),
-    Return.
+    case erlang:get({sql_bridge_current_pool, DB}) of
+        undefined ->
+            Worker = poolboy:checkout(DB),
+            Return = Fun(Worker),
+            poolboy:checkin(DB, Worker),
+            Return;
+        {ok, Worker} ->
+            _Return = Fun(Worker)
+    end.
 
+checkout_pool(DB) ->
+    Worker = poolboy:checkout(DB),
+    erlang:put({sql_bridge_current_pool, DB}, {ok, Worker}),
+    Worker.
+
+checkin_pool(DB) ->
+    {ok, Worker} = erlang:get({sql_bridge_current_pool, DB}),
+    poolboy:checkin(DB, Worker),
+    erlang:put({sql_bridge_current_pool, DB}, undefined),
+    ok.
 
 to_string(A) when is_atom(A) ->
     atom_to_list(A);
