@@ -9,4 +9,4 @@ create table fruit (
 	description text,
 	quantity integer,
 	picture blob
-);
+) character set utf8;

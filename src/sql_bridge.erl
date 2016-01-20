@@ -276,7 +276,6 @@ db_q(Type, Db, Q, ParamList, RemainingAttempts) ->
         {ok, Response} ->
             Response;
         {error, no_pool} ->
-            error_logger:info_msg("No pool for '~p'. Attempting to connect.", [Db]),
             connect(Db),
             db_q(Type, Db, Q, ParamList, RemainingAttempts-1)
     end.

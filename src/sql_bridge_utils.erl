@@ -63,7 +63,7 @@ to_string(L) when is_list(L) ->
 %% This is only used by the dynamically build module 'sql_bridge_stringify'.
 %% Made in the sql_bridge_alias module
 binary_to_string(B) when is_binary(B) ->
-   binary_to_list(B);
+   unicode:characters_to_list(B);
 binary_to_string(L) when is_list(L) ->
     L;
 binary_to_string(Other) ->

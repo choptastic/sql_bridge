@@ -36,6 +36,7 @@ emysql_otp_test_() ->
 
 
 gen_setup(Adapter, ReplacementType, Port) ->
+	error_logger:info_msg("Starting Adapter: ~p~n",[Adapter]),
 	application:load(sql_bridge),
 	application:set_env(sql_bridge, adapter, Adapter),
 	application:set_env(sql_bridge, port, Port),
@@ -105,7 +106,14 @@ main_tests(_) ->
 	 ?_assertEqual(1, db:delete(fruit, fruit, "orange")),
 	 ?_assert(test_exists("banana")),
 	 ?_assertNot(db:exists(fruit, fruit, "banana-fake")),
-	 ?_assertNot(test_id_delete())
+	 ?_assertNot(test_id_delete()),
+	 ?_assert(test_string("ﻦﺤﻧ ﺫﺎﻬﺑﻮﻧ ﻒﻳ ﺡﺎﺟﺓ ﺈﻟﻯ ﻕﺍﺮﺑ ﺄﻜﺑﺭ")),
+	 ?_assert(test_string("我们将需要更大的船")),
+	 ?_assert(test_string("Budeme potřebovat větší loď")),
+	 ?_assert(test_string("ჩვენ ვაპირებთ, რომ უნდა დიდი ნავი")),
+	 ?_assert(test_string("Мы собираемся нуждаться в большей лодку")),
+	 ?_assert(test_string("testy'pants")),
+	 ?_assert(test_string("'+\"!@#$%^&*()\\//\\//';[]<>./-=-=+"))
 	].
 
 update_apple_to_orange() ->
@@ -130,3 +138,7 @@ test_id_delete() ->
 	Fruitid = db:fffr(["select fruitid from fruit where fruit=",?P1], ["banana"]),
 	db:delete(fruit, Fruitid),
 	db:exists(fruit, Fruitid).
+
+test_string(Str) ->
+	Fruitid = db:pl(fruit, [{fruitid, 0}, {fruit, "new"}, {description, Str}]),
+	Str == db:field(fruit, description, Fruitid).

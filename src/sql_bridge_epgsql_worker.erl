@@ -21,7 +21,6 @@ init(Args) ->
 	Password = proplists:get_value(password, Args),
 	Port = proplists:get_value(port, Args, 5432),
 	Options = [{database, Database}, {port, Port}],
-	error_logger:info_msg("Attempting to connect to ~p.~nUsername: ~p, Password: ~p.~nOptions: ~p~n", [Hostname, Username, Password, Options]),
 	{ok, Conn} = epgsql:connect(Hostname, Username, Password, Options),
 	{ok, #state{conn=Conn}}.
 
