@@ -96,7 +96,7 @@ But you'll learn common shortcuts:
 
 #### Prepared Statements?
 
-SigmaSQL currently does not offer prepared statements, but will do safe
+SQL_Bridge currently does not offer prepared statements, but will do safe
 variable replacement using a similar convention, replacing `?` in order.
 
 For example:
@@ -115,7 +115,7 @@ instead of "login"), while still using the singular as the name of key fields
 
 Well, despite english being my native language, I find it to be a terribly,
 horribly inconsistent language, and refuse to try to make code figure out if
-the plural of "child" is "children" or "childs". As such, SigmaSQL makes a lot
+the plural of "child" is "children" or "childs". As such, SQL_Bridge makes a lot
 of assumptions that your codebase will use a singular table name, and that the
 key of that table is named `Tablename ++ "id"`.
 
@@ -124,7 +124,7 @@ primary key is "loginid".
 
 #### Insert or Update Determination
 
-There are some helper functions in SigmaSQL that will attempt to determine if
+There are some helper functions in SQL_Bridge that will attempt to determine if
 we're updating or inserting a new one.  The basic rule is this: If the key
 field specified has a value of `0` or `undefined`, it will be an insert,
 assuming the database will do the auto increment for us. If it's anything else,
@@ -134,7 +134,7 @@ it's an update.
 
 #### One more convention before showing each function:
 
-Almost all query functions in SigmaSQL take one or two parameters.
+Almost all query functions in SQL_Bridge take one or two parameters.
 
   * 1 Argument: the query will be executed as-is. (e.g. `db:q("select * from
     whatever")`)
