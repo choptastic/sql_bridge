@@ -316,23 +316,19 @@ they only return a single row. They all start with `fr` for "first record"
 ## TODO
 
 ### v0.1.0
-  * Add Maps support (with appropriate macros) to prevent compiling maps
-    functions pre-Erlang-17
-  * Add proper [transaction support](https://github.com/choptastic/sql_bridge/issues/2)
   * New API functions for better function naming:
      + `db:list`, `db:lists` (replaces `db:q` and `db:fr`)
      + `db:tuple`, `db:tuples` (replaces `db:tq` and `db:tfr`)
      + `db:proplist`, `db:proplists` (replaces `db:plq` and `db:plfr`)
      + `db:map`, `db:maps` (replaces `db:mq` and `db:mfr`)
      + `db:dict`, `db:dicts` (replaces `db:dq` and `db:dfr`)
-  * Test suite
 
 ### v0.2.0 
   * Maybe Experiment with [record-based querys](https://github.com/choptastic/sql_bridge/issues/1)
 
 ## About
 
-Copyright (c) 2013-2015 [Jesse Gumm](http://sigma-star.com/page/jesse)
+Copyright (c) 2013-2016 [Jesse Gumm](http://sigma-star.com/page/jesse)
 ([@jessegumm](http://twitter.com/jessegumm))
 
 MIT License
