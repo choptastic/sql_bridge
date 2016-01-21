@@ -66,6 +66,10 @@ dicts(Q) ->         dq(Q).
 dicts(Q, P) ->      dq(Q, P).
 dict(Q) ->          dfr(Q).
 dict(Q, P) ->       dfr(Q, P).
+update(Q) ->        qu(Q).
+update(Q, P) ->     qu(Q, P).
+insert(Q) ->        qi(Q).
+insert(Q, P) ->     qi(Q, P).
 
 -spec lookup() -> db().
 % @doc Checks the configuration for how we determine the database we're using
