@@ -101,7 +101,8 @@ trans_tests(_) ->
 			]}
 		]},
 		[
-		 ?_assertEqual(12, db:fffr("select count(*) from fruit"))
+		 ?_assertEqual(12, db:fffr("select count(*) from fruit")),
+		 ?_assertEqual(12, db:fffr(["select count(*) from fruit where quantity in (",db:encode_list([1,2,3,4,5,6,7,8,9,10,11,12]),")"]))
 		]
 	].
 
@@ -207,7 +208,12 @@ main_tests(_) ->
 	 ?_assert(test_string("ჩვენ ვაპირებთ, რომ უნდა დიდი ნავი")),
 	 ?_assert(test_string("Мы собираемся нуждаться в большей лодку")),
 	 ?_assert(test_string("testy'pants")),
-	 ?_assert(test_string("'+\"!@#$%^&*()\\//\\//';[]<>./-=-=+"))
+	 ?_assert(test_string("'+\"!@#$%^&*()\\//\\//';[]<>./-=-=+")),
+	 ?_assert(test_encode_list(["'+\"", "!@#$'^&%", "//\\//\\", "blah","123","-=--=-!+'\"'''''''''''''''''"])),
+	 ?_assertEqual({some, crazy,"term"}, db:decode64(db:encode64({some, crazy,"term"}))),
+	 ?_assertMatch([_, _], db:q("select * from fruit " ++ db:limit_clause(2, 1))),
+	 ?_assertMatch([_, _], db:q("select * from fruit " ++ db:limit_clause(2, -1))),
+	 ?_assertMatch([_], db:q("select * from fruit " ++ db:limit_clause(-123, 5)))
 	].
 
 update_apple_to_orange() ->
@@ -236,3 +242,13 @@ test_id_delete() ->
 test_string(Str) ->
 	Fruitid = db:pl(fruit, [{fruitid, 0}, {fruit, "new"}, {description, Str}]),
 	Str == db:field(fruit, description, Fruitid).
+
+test_encode_list(List) ->
+	Fruitids = lists:map(fun(Fruit) ->
+		db:pl(fruit, [{fruit, Fruit}])
+	end, List),
+	Fruitids = db:ffl(["select fruitid from fruit where fruitid in (",db:encode_list(Fruitids),") order by fruitid"]),
+	Fruitids = db:ffl(["select fruitid from fruit where fruit in (", db:encode_list(List), ") order by fruitid"]),
+	true.
+
+

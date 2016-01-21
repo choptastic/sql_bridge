@@ -183,10 +183,16 @@ format_maps(_,_) ->
 schema_db_column() ->
 	"table_catalog".
 
+encode(A) when is_atom(A) ->
+	encode(A);
+encode(I) when is_integer(I) ->
+	list_to_binary(integer_to_list(I));
+encode(F) when is_float(F) ->
+	list_to_binary(float_to_list(F));
 encode(B) when is_binary(B) ->	
-	escape_binary(B, <<>>);
-encode(V) ->
-	V.
+	<<"'",(escape_binary(B, <<>>))/binary,"'">>;
+encode(L) when is_list(L) ->
+	encode(list_to_binary(L)).
 
 escape_binary(<<X/utf8, Rest/binary>>, Acc) when X==$' ->
 	escape_binary(Rest, <<Acc/binary,"''">>);

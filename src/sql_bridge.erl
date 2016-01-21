@@ -567,9 +567,11 @@ to_bool(_) ->       true.
 %% @doc Generates a SQL "LIMIT" clause based on the PerPage Criteria and the
 %% Page, calculating the offset according to the provided values. Useful when
 %% building something that breaks a list into pages in an interface.
+limit_clause(PerPage, Page) when PerPage < 1 ->
+    limit_clause(1, Page);
 limit_clause(PerPage, Page) ->
     Offset = offset(PerPage, Page),
-    [" limit ",integer_to_list(Offset),", ",integer_to_list(PerPage)].
+    [" limit ",integer_to_list(PerPage)," offset ", integer_to_list(Offset)].
 
 offset(PerPage, Page) when Page =< 0 ->
     offset(PerPage, 1);

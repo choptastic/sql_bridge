@@ -182,4 +182,6 @@ schema_db_column() ->
 	"table_schema".
 
 encode(Val) ->
-	Val.
+	sql_bridge_utils:with_poolboy_pool(sql_bridge:db(), fun(Worker) ->
+		mysql:encode(Worker, Val)
+	end).
