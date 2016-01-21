@@ -34,28 +34,94 @@ setting, updating data from proplists, and more.
 
 ## Configuration
 
-There is a sample config file in sample.config, but here are the configuration
-settings currently available:
+### `module_alias`
+
+Probably the most unusual configuration to discuss is the `module_alias`.
+
+This configuration option allows us to compile a module which exports all the
+functions of `sql_bridge`, but allows us to use a different module name.
+
+In my own apps, I tend to use a module called `db` which serves as the alias to
+`sql_bridge`.  While it's easy enough to make your own module and do an
+`import`, this configuration parameter allows us to skip that step.
+
+This alias module is generated and loaded during the `sql_bridge:start()`
+function.
+
+### `lookup`
+
+The most important configuration variable is the `lookup` variable. This tells
+SQL_Bridge which database to use at any given time.
+
+It can take two possible values:
+
+   * An atom of the database name. For single-database apps, this is the simple
+     solution: Whatever value you assign to `lookup` will be the database
+     SQL_Bridge uses.
+
+   * A {Module, Function} or {Module, Function, Args} tuple. This is for
+     multi-database apps.  The return value of Module:Function() or
+    `erlang:apply(Module, Function, Args)` will be ysed to determine which database
+    to connect to. This value will then be cached within the process dictionary so
+    that that (potentially expensive) function isn't repeatedly called within the
+    same process.
+
+### `adapter`
+
+As the final important config variable, `adapter` determines which database driver to use.  Currently, SQL_Bridge ships with the following adapters (And the driver upon which it depends)
+
+  + `sql_bridge_epgsql` - [epgsql](http://github.com/epgsql/epgsql) - The
+    Erlang PostgreSQL driver (also uses poolboy).
+  + `sql_bridge_mysql_otp` - [mysql-otp](http://github.com/mysql-otp/mysql-otp) -
+     A New MySQL driver (also uses poolboy).
+  + `sql_bridge_emysql` - [emysql](http://github.com/eonblast/emysql) - The
+    (mostly abandoned) Emysql driver.
+
+### Sample Config
+
+There is a sample config file in
+[sample.config](https://github.com/choptastic/sigma_sql/blob/master/sample.config),
+but here are the configuration settings currently available:
 
 ```erlang
 [
     {sql_bridge, [
-        {type, mysql},
+        %% module_alias creates a module with the specified name, which can be
+        %% used as an alias to the sigma_sql module.
+        {module_alias, db},
+
+        %% There are three adapters that can be used:
+        %%  + sql_bridge_epgsql: PostgreSQL adapter using epgsql
+        %%  + sql_bridge_mysql_otp: MySQL adapter using mysql-otp
+        %%  + sql_bridge_emysql: MySQL adapter using the (mostly abandoned) Emysql driver.
+        {adapter, sql_bridge_mysql_otp},
+
+        %% connection parameters (self explanitory, I hope)
         {host, "127.0.0.1"},
         {port, 3306},
         {user, "user"},
         {pass, "userpass"},
-        %% There are three different ways to determine database
+
+        %% There are two different ways to determine database
         %%
-        %% 1) All requests go to a single database:
+        %% 1) All requests go to a single database, called 'database_name':
         {lookup, database_name}
         %%
-        %% 2) Before a request is made, run a lookup function in another
-        %%     module to determine which database:
-        {lookup, {lookup_module, lookup_function}}
-        %%
-        %% 3) Before a request is made, run an anonymous lookup function:
-        {lookup, fun() -> returns_an_atom_of_db_name() end}
+		%% 2) Before a request is made, run the function
+        %% `lookup_module:lookup_function()`, for which the return value will
+        %% be the database name
+        {lookup, {lookup_module, lookup_function}},
+
+		%% Number of connections to establish per pool (which really means
+		%% number of connections per database).
+		{connections_per_pool, 10},
+
+        %% If a connection pool is saturated, this allows additional "overflow"
+        %% connections to be established up to the limit specified below.
+        {overflow_connections_per_pool, 10},
+
+        %% If you prefer your string types (varchars, texts, etc) to be returned as erlang lists rather than binaries, set the following to true:
+        {stringify_binaries, false}
     ]}
 ].
 ```
@@ -66,8 +132,6 @@ three different kinds of values:
   * Atom: That's the database every request will use.
   * {Module, Function}: Call Module:Function() to determine which database to
     connect to.
-  * Function (arity 1): Call Function() to determine which database to connect
-    to.
 
 ## API
 
@@ -75,12 +139,12 @@ three different kinds of values:
 
 #### Abbreviations
 
-Due to my obsession with brevity, almost all function calls are acronyms of
-something.  Learning those conventions will save you keystrokes, minimize the
-chance for typos, and shorten your code.  The drawback is that it's not
-entirely obvious on a cursory glance what a function returns (for example:
-`db:fffr` is not exactly obvious that it stands for "(F)irst (F)ield of (F)irst
-(R)ecord").
+Due to my obsession with brevity, most all function calls have hyper-terse
+versions which are acronyms of something.  Learning those conventions will save
+you keystrokes, minimize the chance for typos, and shorten your code.  The
+drawback is that it's not entirely obvious on a cursory glance what a function
+returns (for example: `db:fffr` is not exactly obvious that it stands for
+"(F)irst (F)ield of (F)irst (R)ecord").
 
 But you'll learn common shortcuts:
 
@@ -94,15 +158,34 @@ But you'll learn common shortcuts:
   * `i` -> insert
   * `u` -> update
 
+
+**Conveniently, however,** There are also simpler, more semantic function
+names, like `list`, `maps`, `proplist`, etc, which return exactly what the name
+implies. All is documented below.
+
 #### Prepared Statements?
 
 SQL_Bridge currently does not offer prepared statements, but will do safe
-variable replacement using a similar convention, replacing `?` in order.
+variable replacement using a similar convention, either with MySQL's `?`
+placeholder, or PostgreSQL's `$1, $2,...$X` placeholder.
 
-For example:
+##### Replacement Placeholders
+
+Which placeholder is used can be modified by the configuration variable
+`replacement_token_style`.  This value can be the atoms 'mysql' or 'postgres'
+or it could also be the shortened version with the atom '?' or '$'
+respectively.
+
+Sample MySQL Placeholders:
 
 ```erlang
-db:q("Select * from login where username=? or email=?", [Loginid, Email])`
+db:q("Select * from login where username=? or email=?", [Loginid, Email])
+```
+
+Sample PostgreSQL Placeholders:
+
+```erlang
+db:q("Select * from login where username=$1 or email=$2", [Loginid, Email])
 ```
 
 #### Singular Table Names
@@ -164,7 +247,7 @@ For our example, we're going to have a table called `player`:
 
 ##### Multi-record Queries
 
-  * `db:q`: The most basic query. Will return a list of rows formatted as
+  * `db:maps` or `db:q`: The most basic query. Will return a list of rows formatted as
     simple lists.
 
     ```erlang
@@ -173,7 +256,7 @@ For our example, we're going to have a table called `player`:
      [3,"Marc"]]
     ```
 
-  * `db:tq`: Like `db:q` except returns a list of rows formatted as tuples.
+  * `db:tuples` or `db:tq`: Like `db:q` except returns a list of rows formatted as tuples.
     ```erlang
 
     > db:tq("select playerid, name from player where race=?", ["elf"]).
@@ -181,7 +264,7 @@ For our example, we're going to have a table called `player`:
      {3,"Marc"}]
     ```
 
-  * `db:plq`: Like `db:q` except returns a list of proplists, with the keys of
+  * `db:proplists` or `db:plq`: Like `db:q` except returns a list of proplists, with the keys of
     which are atomized versions of the database field names:
 
     ```erlang
@@ -194,18 +277,22 @@ For our example, we're going to have a table called `player`:
       {level,15}]]
     ```
 
-  * `db:dq`: Like `db:plq`, except returns a list of Erlang `dicts` with the
+  * `db:dicts` or `db:dq`: Like `db:plq`, except returns a list of Erlang `dicts` with the
     keys again being atomized versions of the field names.
+
+  * `db:maps` or `db:mq`: Like `db:plq`, except returns a list of Erlang `maps`, with keys
+    atomized versions of field names.
 
 ##### Single-record Queries
 
 Single-record queries correspond directly to their multi-record queries, except
 they only return a single row. They all start with `fr` for "first record"
 
-  * `db:fr`: Like `db:q` (Returns a list)
-  * `db:tfr`: Like `db:tq` (Returns a tuple)
-  * `db:plfr`: Like `db:plq` (Returns a proplist)
-  * `db:dfr`: Like `db:dq` (Returns a dict)
+  * `db:list` or `db:fr`: Like `db:q` (Returns a list)
+  * `db:tuple` or `db:tfr`: Like `db:tq` (Returns a tuple)
+  * `db:proplist` or `db:plfr`: Like `db:plq` (Returns a proplist)
+  * `db:dict` or `db:dfr`: Like `db:dq` (Returns a dict)
+  * `db:map` or `db:mfr`: List `db:mq` (Returns a map)
 
 ##### Other convenience queries
 
@@ -267,11 +354,11 @@ they only return a single row. They all start with `fr` for "first record"
 
 ### Insert
 
-  * `db:qi`: Runs the specified query and returns the `insert_id`
+  * `db:qi` or `db:insert` Runs the specified query and returns the `insert_id`
 
 ### Update
 
-  * `db:qu`: Run the specified query and returns the number of affected rows.
+  * `db:qu` or `db:update`: Run the specified query and returns the number of affected rows.
 
 ### Update or Delete from a Proplist
 
@@ -292,10 +379,27 @@ they only return a single row. They all start with `fr` for "first record"
 
   * `db:delete(Table, Field, ID)`: Delete records from a table.
 
-#### Misc Utilities
+## Transactions
 
-  * `db:encode(Term)`: Safely escapes a data for MySQL insertion. Will encode
-    the atoms `true` and `false` as `1` and `0` respectively.
+SQL_Bridge supports transactions through two mechanisms:
+
+  1. `db:start_trans()`, `db:commit()`, and `db:rollback()` - Manually initiate
+	 a transaction. Note, if you run something like `db:q("BEGIN")`, SQL_Bridge
+    is not intelligent enough to determine that you're in a transaction. Please use
+    `db:start_trans()`.
+
+  2. `db:trans(Fun)` - Mnesia-style transactions where the contents of the
+	 function are run within a transaction.  Note that `Fun` is of arity 0
+    (that is, no arguments). If the function completes successfully, the queries
+    executed will be commited, and the return value of the `Fun()` will be the
+    return value of `db:trans(Fun)`.  If `Fun()` crashes, the transaction will be
+    automatically rolled back, and the return value will be `{error, Reason}`,
+    where `Reason` is information about the crash (including a stacktrace).
+
+## Misc Utilities
+
+  * `db:encode(Term)`: Safely escapes a data for database interaction on in a
+    SQL query, for the backend of your choice.
  
   * `db:encode_list(List)`: Takes a list of terms and safely encodes them for
     mysql interaction, separating them with commas. 
@@ -314,14 +418,6 @@ they only return a single row. They all start with `fr` for "first record"
 
    
 ## TODO
-
-### v0.1.0
-  * New API functions for better function naming:
-     + `db:list`, `db:lists` (replaces `db:q` and `db:fr`)
-     + `db:tuple`, `db:tuples` (replaces `db:tq` and `db:tfr`)
-     + `db:proplist`, `db:proplists` (replaces `db:plq` and `db:plfr`)
-     + `db:map`, `db:maps` (replaces `db:mq` and `db:mfr`)
-     + `db:dict`, `db:dicts` (replaces `db:dq` and `db:dfr`)
 
 ### v0.2.0 
   * Maybe Experiment with [record-based querys](https://github.com/choptastic/sql_bridge/issues/1)

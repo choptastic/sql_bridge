@@ -199,4 +199,6 @@ create_postgres_placeholder(Num) ->
 to_atom(B) when is_binary(B) ->
     list_to_atom(binary_to_list(B));
 to_atom(A) when is_list(A) ->
-    list_to_atom(A).
+    list_to_atom(A);
+to_atom(A) when is_atom(A) ->
+    A.

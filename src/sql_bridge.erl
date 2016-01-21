@@ -44,6 +44,29 @@
     return_value/0
 ]).
 
+%% New API aliases
+
+lists(Q) ->         q(Q).
+lists(Q, P) ->      q(Q, P).
+list(Q) ->          fr(Q).
+list(Q, P) ->       fr(Q, P).
+tuples(Q) ->        tq(Q).
+tuples(Q, P) ->     tq(Q,P).
+tuple(Q) ->         tfr(Q).
+tuple(Q, P) ->      tfr(Q, P).
+proplists(Q) ->     plq(Q).
+proplists(Q, P) ->  plq(Q, P).
+proplist(Q) ->      plfr(Q).
+proplist(Q, P) ->   plfr(Q, P).
+maps(Q) ->          mq(Q).
+maps(Q, P) ->       mq(Q, P).
+map(Q) ->           mfr(Q).
+map(Q, P) ->        mfr(Q, P).
+dicts(Q) ->         dq(Q).
+dicts(Q, P) ->      dq(Q, P).
+dict(Q) ->          dfr(Q).
+dict(Q, P) ->       dfr(Q, P).
+
 -spec lookup() -> db().
 % @doc Checks the configuration for how we determine the database we're using
 % and returns the database.
@@ -125,20 +148,11 @@ pl(Table,KeyField,PropList) when is_list(Table) ->
             plu(Table,KeyField,PropList)
     end.
 
--spec atomize(list() | binary() | atom()) -> atom().
-% @doc converts X to an atom.
-atomize(X) when is_list(X) ->
-    list_to_atom(X);
-atomize(X) when is_atom(X) ->
-    X;
-atomize(X) when is_binary(X) ->
-    list_to_atom(binary_to_list(X)).
-
 -spec filter_fields(Table :: table(), PropList :: proplist()) -> proplist().
 % @doc removes from Proplist any fields that aren't found in the table "Table"
 filter_fields(Table,PropList) ->
     TableFields = table_fields(Table),
-    [{K,V} || {K,V} <- PropList,lists:member(atomize(K),TableFields)].
+    [{K,V} || {K,V} <- PropList,lists:member(sql_bridge_utils:to_atom(K),TableFields)].
 
 -spec trans(Fun :: fun()) -> ok.
 trans(Fun) when is_function(Fun) ->
@@ -316,8 +330,6 @@ qu(Q) ->
 qu(Q, ParamList) ->
     Db = db(),
     db_q(update, Db, Q, ParamList).
-
-
 
 -spec plfr(Q :: sql(), ParamList :: [value()]) -> proplist() | not_found.
 %% @doc fr = First Record
@@ -573,6 +585,7 @@ limit_clause(PerPage, Page) ->
     Offset = offset(PerPage, Page),
     [" limit ",integer_to_list(PerPage)," offset ", integer_to_list(Offset)].
 
+-spec offset(PerPage :: integer(), Page :: integer()) -> Offset :: integer().
 offset(PerPage, Page) when Page =< 0 ->
     offset(PerPage, 1);
 offset(PerPage, Page) when PerPage < 1 ->
