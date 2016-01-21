@@ -56,13 +56,20 @@ with_poolboy_pool(DB, Fun) ->
             poolboy:checkin(DB, Worker),
             Return;
         {ok, Worker} ->
+            io:format("~p in trans: ~p~n",[self(), Worker]),
             _Return = Fun(Worker)
     end.
 
 checkout_pool(DB) ->
-    Worker = poolboy:checkout(DB),
-    erlang:put({sql_bridge_current_pool, DB}, {ok, Worker}),
-    Worker.
+    case erlang:get({sql_bridge_current_pool, DB}) of
+        undefined -> 
+            Worker = poolboy:checkout(DB),
+            erlang:put({sql_bridge_current_pool, DB}, {ok, Worker}),
+            ok;
+        {ok, _Worker} ->
+            %% already checked out, do nothing
+            ok
+    end.
 
 checkin_pool(DB) ->
     {ok, Worker} = erlang:get({sql_bridge_current_pool, DB}),

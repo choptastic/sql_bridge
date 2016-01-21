@@ -20,14 +20,28 @@ mysql_otp_test_() ->
 	 fun main_tests/1
 	}.
 
-epgsql_otp_test_() ->
+mysql_otp_trans_test_() ->
+	{setup,
+	 fun() -> gen_setup(sql_bridge_mysql_otp, mysql, 3306) end,
+	 fun mysql_otp_cleanup/1,
+	 fun trans_tests/1
+	}.
+
+epgsql_trans_test_() ->
 	{setup,
 	 fun() -> gen_setup(sql_bridge_epgsql, mysql, 5432) end,
 	 fun epgsql_cleanup/1,
 	 fun main_tests/1
 	}.
 
-emysql_otp_test_() ->
+epgsql_test_() ->
+	{setup,
+	 fun() -> gen_setup(sql_bridge_epgsql, postgres, 5432) end,
+	 fun epgsql_cleanup/1,
+	 fun trans_tests/1
+	}.
+
+emysql_test_() ->
 	{setup,
 	 fun() -> gen_setup(sql_bridge_emysql, mysql, 3306) end,
 	 fun epgsql_cleanup/1,
@@ -45,7 +59,8 @@ gen_setup(Adapter, ReplacementType, Port) ->
 	application:set_env(sql_bridge, lookup, sql_bridge_test),
 	application:set_env(sql_bridge, replacement_token_style, ReplacementType),
 	application:set_env(sql_bridge, stringify_binaries, true),
-	sql_bridge:start().
+	sql_bridge:start(),
+	db:q("delete from fruit").
 
 
 epgsql_cleanup(_) ->
@@ -63,9 +78,80 @@ emysql_cleanup(_) ->
 	application:stop(sql_bridge),
 	ok.
 
+trans_tests(_) ->
+	LookupPid = erlang:spawn(fun lookup_loop/0),
+	[
+		{timeout, 15000, [
+			{inparallel, [
+				?_assert(test_trans(LookupPid, 0)),
+				?_assert(test_trans(LookupPid, 100)),
+				?_assert(test_trans(LookupPid, 200)),
+				?_assert(test_trans(LookupPid, 300)),
+				?_assert(test_trans(LookupPid, 400)),
+				?_assert(test_trans(LookupPid, 500)),
+				?_assertNot(test_trans(LookupPid, 600, rollback))
+			]}
+		]},
+		[
+		 ?_assertEqual(6, db:fffr("select count(*) from fruit"))
+		]
+	].
+
+lookup_loop() ->
+	lookup_loop([]).
+
+lookup_loop(Fruitids) ->
+	receive
+		{register, Fruitid} ->
+			lookup_loop(Fruitids ++ [Fruitid]);
+		{lookup, Pid} ->
+			[Fruitid|Rest] = Fruitids,
+			Pid ! Fruitid,
+			lookup_loop(Rest)
+	after
+		10000 -> die
+	end.
+
+register_fruitid(LookupPid, Fruitid) ->
+	LookupPid ! {register, Fruitid}.
+
+lookup_fruitid(LookupPid, NotFruitid) ->
+	LookupPid ! {lookup, self()},
+	receive
+		NotFruitid ->
+			register_fruitid(LookupPid, NotFruitid),
+			lookup_fruitid(LookupPid, NotFruitid);
+		Fruitid ->
+			Fruitid
+	after
+		10000 -> throw(not_received)
+	end.
+
+test_trans(LookupPid, Delay) ->
+	test_trans(LookupPid, Delay, commit).
+
+test_trans(LookupPid, Delay, CommitOrRollback) ->
+	FruitName = "Fruit-" ++ integer_to_list(Delay),
+	db:trans(fun() ->
+		timer:sleep(1000),
+		0=db:fffr("select count(*) from fruit"),
+		Fruitid = db:qi(["insert into fruit(fruit, quantity) values(",?P1,",",?P2,")"], [FruitName, Delay]),
+		register_fruitid(LookupPid, Fruitid),
+		true=db:exists(fruit, Fruitid),
+		1=db:fffr("select count(*) from fruit"),
+		timer:sleep(1500),
+		OtherTranFruitid = lookup_fruitid(LookupPid, Fruitid),
+		true=is_integer(OtherTranFruitid),
+		true=(Fruitid=/=OtherTranFruitid),
+		false=db:exists(fruit, OtherTranFruitid),
+		timer:sleep(1500),
+		commit=CommitOrRollback,
+		Fruitid
+	end),
+	db:qexists(["select * from fruit where quantity=",?P1], [Delay]).
+
 main_tests(_) ->
 	[
-	 ?_assertMatch(_, db:q("delete from fruit")),
 	 ?_assertEqual([], db:q("select * from fruit")),
 	 ?_assertEqual([], db:tq("select * from fruit")),
 	 ?_assertEqual([], db:dq("select * from fruit")),

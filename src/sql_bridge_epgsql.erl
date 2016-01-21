@@ -4,17 +4,16 @@
 
 -export([start/0,
 		 connect/5,
-		 query/3,
 		 query/4,
  		 schema_db_column/0,
 		 encode/1,
 		 start_transaction/1,
 		 commit_transaction/1,
+		 rollback_transaction/1,
 		 with_transaction/2]).
 
 start() ->
 	application:start(poolboy),
-	%application:start(epgsql),
 	ok.
 
 connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
@@ -29,25 +28,30 @@ connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
 	ok.
 
 start_transaction(DB) ->
-	Worker = sql_bridge_utils:checkout_pool(DB),
-	gen_server:call(Worker, {squery, "BEGIN"}),
-	erlang:put({sql_bridge_current_pool, DB}, Worker),
+	sql_bridge_utils:checkout_pool(DB),
+	query(none, DB, "BEGIN;", []),
+	ok.
+
+rollback_transaction(DB) ->
+	query(none, DB, "ROLLBACK;", []),
+	sql_bridge_utils:checkin_pool(DB),
 	ok.
 
 commit_transaction(DB) ->
-	Worker = erlang:get({sql_bridge_current_pool, DB}),
-	gen_server:call(Worker, {squery, "COMMIT"}),
-	sql_bridge_utils:checkin_pool(DB, Worker),
+	query(none, DB, "COMMIT;", []),
+	sql_bridge_utils:checkin_pool(DB),
 	ok.
 
 with_transaction(DB, Fun) ->
 	start_transaction(DB),
-	Fun(),
-	commit_transaction(DB).
-
-query(Type, DB, Q) ->
-	query(Type, DB, Q, []).
-
+	try Fun() of
+		Res -> 
+			commit_transaction(DB),
+			Res
+	catch Error:Class ->
+			rollback_transaction(DB),
+			{error, [{Error, Class}, erlang:get_stacktrace()]}
+	end.
 
 query(Type, DB, Q, ParamList) ->
 	try query_catched(Type, DB, Q, ParamList)
@@ -85,6 +89,8 @@ maybe_replace_tokens(Q, ParamList) ->
 		mysql -> sql_bridge_utils:token_mysql_to_postgres(Q, ParamList)
 	end.
 
+format_result(none, _) ->
+	ok;
 format_result(_Type, {ok, Count}) ->
 	Count;
 format_result(insert, {ok, _Count, _Columns, Rows}) ->

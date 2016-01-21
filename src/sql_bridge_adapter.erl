@@ -9,10 +9,6 @@
 
 -callback query(Type :: sql_bridge:return_type(),
 				DB :: sql_bridge:db(),
-				Q :: sql_bridge:sql()) -> {ok, sql_bridge:return_value()} | {error, no_pool | any()}.
-
--callback query(Type :: sql_bridge:return_type(),
-				DB :: sql_bridge:db(),
 				Q :: sql_bridge:sql(),
 			    ParamList :: [sql_bridge:value()]) -> {ok, sql_bridge:return_value()} | {error, no_pool | any()}.
 
