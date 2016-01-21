@@ -29,16 +29,16 @@ connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
 
 start_transaction(DB) ->
 	sql_bridge_utils:checkout_pool(DB),
-	query(none, DB, "BEGIN;", []),
+	query(none, DB, "BEGIN", []),
 	ok.
 
 rollback_transaction(DB) ->
-	query(none, DB, "ROLLBACK;", []),
+	query(none, DB, "ROLLBACK", []),
 	sql_bridge_utils:checkin_pool(DB),
 	ok.
 
 commit_transaction(DB) ->
-	query(none, DB, "COMMIT;", []),
+	query(none, DB, "COMMIT", []),
 	sql_bridge_utils:checkin_pool(DB),
 	ok.
 
@@ -48,7 +48,8 @@ with_transaction(DB, Fun) ->
 		Res -> 
 			commit_transaction(DB),
 			Res
-	catch Error:Class ->
+	catch
+		Error:Class ->
 			rollback_transaction(DB),
 			{error, [{Error, Class}, erlang:get_stacktrace()]}
 	end.

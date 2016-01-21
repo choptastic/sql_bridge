@@ -152,6 +152,9 @@ start_trans() ->
 commit() ->
     ?ADAPTER:commit_transaction(db()).
 
+rollback() ->
+    ?ADAPTER:rollback_transaction(db()).
+
 -spec q(Q :: sql()) -> [list()].
 %% @doc Run the SQL query `Q` and return a list of lists, with each inner list
 %% representing one record in the return set.

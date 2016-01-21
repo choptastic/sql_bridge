@@ -83,17 +83,25 @@ trans_tests(_) ->
 	[
 		{timeout, 15000, [
 			{inparallel, [
-				?_assert(test_trans(LookupPid, 0)),
-				?_assert(test_trans(LookupPid, 100)),
-				?_assert(test_trans(LookupPid, 200)),
-				?_assert(test_trans(LookupPid, 300)),
-				?_assert(test_trans(LookupPid, 400)),
-				?_assert(test_trans(LookupPid, 500)),
-				?_assertNot(test_trans(LookupPid, 600, rollback))
+				?_assert(test_trans(LookupPid, 1)),
+				?_assert(test_trans(LookupPid, 2)),
+				?_assert(test_trans(LookupPid, 3)),
+				?_assert(test_trans(LookupPid, 4)),
+				?_assert(test_trans(LookupPid, 5)),
+				?_assert(test_trans(LookupPid, 6)),
+				?_assert(test_trans(LookupPid, 7)),
+				?_assert(test_trans(LookupPid, 8)),
+				?_assert(test_trans(LookupPid, 9)),
+				?_assert(test_trans(LookupPid, 10)),
+				?_assert(test_trans(LookupPid, 11)),
+				?_assert(test_trans(LookupPid, 12)),
+				?_assertNot(test_trans(LookupPid, 500, rollback)),
+				?_assertNot(test_trans(LookupPid, 600, rollback)),
+				?_assertNot(test_trans(LookupPid, 700, rollback))
 			]}
 		]},
 		[
-		 ?_assertEqual(6, db:fffr("select count(*) from fruit"))
+		 ?_assertEqual(12, db:fffr("select count(*) from fruit"))
 		]
 	].
 
@@ -127,15 +135,15 @@ lookup_fruitid(LookupPid, NotFruitid) ->
 		10000 -> throw(not_received)
 	end.
 
-test_trans(LookupPid, Delay) ->
-	test_trans(LookupPid, Delay, commit).
+test_trans(LookupPid, Quantity) ->
+	test_trans(LookupPid, Quantity, commit).
 
-test_trans(LookupPid, Delay, CommitOrRollback) ->
-	FruitName = "Fruit-" ++ integer_to_list(Delay),
-	db:trans(fun() ->
+test_trans(LookupPid, Quantity, CommitOrRollback) ->
+	FruitName = "Fruit-" ++ integer_to_list(Quantity),
+	_AddedFruitid = db:trans(fun() ->
 		timer:sleep(1000),
 		0=db:fffr("select count(*) from fruit"),
-		Fruitid = db:qi(["insert into fruit(fruit, quantity) values(",?P1,",",?P2,")"], [FruitName, Delay]),
+		Fruitid = db:qi(["insert into fruit(fruit, quantity) values(",?P1,",",?P2,")"], [FruitName, Quantity]),
 		register_fruitid(LookupPid, Fruitid),
 		true=db:exists(fruit, Fruitid),
 		1=db:fffr("select count(*) from fruit"),
@@ -148,7 +156,7 @@ test_trans(LookupPid, Delay, CommitOrRollback) ->
 		commit=CommitOrRollback,
 		Fruitid
 	end),
-	db:qexists(["select * from fruit where quantity=",?P1], [Delay]).
+	db:qexists(["select * from fruit where quantity=",?P1], [Quantity]).
 
 main_tests(_) ->
 	[
@@ -164,10 +172,10 @@ main_tests(_) ->
 	 ?_assertEqual(not_found, db:dfr("select * from fruit")),
 
 	 ?_assertMatch([fruitid, fruit, description, quantity, picture], db:table_fields(fruit)),
-	 ?_assertMatch(_, db:qi(["insert into fruit(fruit, quantity) values(", ?P1, ",", ?P2, ")"], ["apple", 5])),
+	 ?_assert(is_integer(db:qi(["insert into fruit(fruit, quantity) values(", ?P1, ",", ?P2, ")"], ["apple", 5]))),
 	 ?_assertEqual(5, db:fffr(["select quantity from fruit where fruit=",?P1 ], [apple])),
 	 ?_assertEqual("apple", db:fffr(["select fruit from fruit where quantity=", ?P1], [5])),
-	 ?_assertMatch(_, db:pl(fruit, [{fruitid, 0}, {fruit, <<"banana">>}, {quantity, 100}, {description, "long and yellow"}])),
+	 ?_assert(is_integer(db:pl(fruit, [{fruitid, 0}, {fruit, <<"banana">>}, {quantity, 100}, {description, "long and yellow"}]))),
 	 ?_assertMatch("long and yellow", db:field(fruit, description, fruit, "banana")),
 
 	 ?_assertEqual([["apple", 5], ["banana", 100]], db:q("select fruit, quantity from fruit order by fruit")),

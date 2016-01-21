@@ -4,10 +4,14 @@
 
 -export([start/0,
 		 connect/5,
-		 query/3,
 		 query/4,
 		 schema_db_column/0,
-		 encode/1]).
+		 encode/1,
+		 start_transaction/1,
+		 commit_transaction/1,
+		 rollback_transaction/1,
+		 with_transaction/2
+		]).
 
 %% 
 -export([maybe_replace_tokens/2]).
@@ -28,8 +32,31 @@ connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
 	sql_bridge_utils:start_poolboy_pool(DB, WorkerArgs, mysql),
 	ok.
 
-query(Type, DB, Q) ->
-	query(Type, DB, Q, []).
+start_transaction(DB) ->
+	sql_bridge_utils:checkout_pool(DB),
+	query(none, DB, "BEGIN", []).
+
+rollback_transaction(DB) ->
+	query(none, DB, "ROLLBACK", []),
+	sql_bridge_utils:checkin_pool(DB),
+	ok.
+
+commit_transaction(DB) ->
+	query(none, DB, "COMMIT", []),
+	sql_bridge_utils:checkin_pool(DB),
+	ok.
+
+with_transaction(DB, Fun) ->
+	start_transaction(DB),
+	try Fun() of
+		Res ->
+			commit_transaction(DB),
+			Res
+	catch
+		Error:Class ->
+			rollback_transaction(DB),
+			{error, [{Error, Class}, erlang:get_stacktrace()]}
+	end.
 
 query(Type, DB, Q, ParamList) ->
 	try query_catched(Type, DB, Q, ParamList)
@@ -41,22 +68,31 @@ query(Type, DB, Q, ParamList) ->
 query_catched(Type, DB, Q, ParamList) ->
 	{Q2, ParamList2} = maybe_replace_tokens(Q, ParamList),
 	ToRun = fun(Worker) ->
-		Res = mysql:query(Worker, Q2, ParamList2),
+		Res = mysql_query(Worker, Q2, ParamList2),
 		case Type of
 			insert -> mysql:insert_id(Worker);
 			update -> mysql:affected_rows(Worker);
 			_ -> Res
 		end
 	end,
-	Res = sql_bridge_utils:with_poolboy_pool(DB, ToRun),
-	{ok, format_result(Type, Res)}.
+	case sql_bridge_utils:with_poolboy_pool(DB, ToRun) of
+		{error, Reason} -> {error, Reason};
+		Result -> {ok, format_result(Type, Result)}
+	end.
 	
+mysql_query(Worker, Q, []) ->
+	mysql:query(Worker, Q);
+mysql_query(Worker, Q, ParamList) ->
+	mysql:query(Worker, Q, ParamList).
+
 maybe_replace_tokens(Q, ParamList) ->
 	case sql_bridge_utils:replacement_token() of
 		mysql -> {Q, ParamList};
 		postgres -> sql_bridge_utils:token_postgres_to_mysql(Q, ParamList)
 	end.
 
+format_result(none, _) ->
+	ok;
 format_result(UID, Count) when UID=:=update;
 									 UID=:=insert;
 									 UID=:=delete ->
