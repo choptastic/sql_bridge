@@ -1,8 +1,8 @@
 %% vi: ts=4 sw=4 et ft=erlang
 {application, sql_bridge,
     [
-        {description, "An abstraction layer in front of SQL Databases."},
-        {vsn, "0.0.5"},
+        {description, "A convenience layer for SQL databases"},
+        {vsn, "0.1.0"},
         {registered, []},
         {applications, [
                 kernel,
