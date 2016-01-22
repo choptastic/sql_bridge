@@ -8,5 +8,6 @@ create table fruit (
 	fruit varchar(50),
 	description text,
 	quantity integer,
-	picture blob
+	picture blob,
+	some_float float
 ) character set utf8 engine=innodb;

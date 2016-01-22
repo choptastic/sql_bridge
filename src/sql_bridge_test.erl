@@ -172,8 +172,9 @@ main_tests(_) ->
 	 ?_assertEqual(not_found, db:plfr("select * from fruit")),
 	 ?_assertEqual(not_found, db:dfr("select * from fruit")),
 
-	 ?_assertMatch([fruitid, fruit, description, quantity, picture], db:table_fields(fruit)),
+	 ?_assertMatch([fruitid, fruit, description, quantity, picture, some_float], db:table_fields(fruit)),
 	 ?_assert(is_integer(db:qi(["insert into fruit(fruit, quantity) values(", ?P1, ",", ?P2, ")"], ["apple", 5]))),
+	 ?_assertEqual(undefined, db:fffr("select description from fruit where fruit='apple'")),
 	 ?_assertEqual(5, db:fffr(["select quantity from fruit where fruit=",?P1 ], [apple])),
 	 ?_assertEqual("apple", db:fffr(["select fruit from fruit where quantity=", ?P1], [5])),
 	 ?_assert(is_integer(db:pl(fruit, [{fruitid, 0}, {fruit, <<"banana">>}, {quantity, 100}, {description, "long and yellow"}]))),
@@ -213,8 +214,14 @@ main_tests(_) ->
 	 ?_assertEqual({some, crazy,"term"}, db:decode64(db:encode64({some, crazy,"term"}))),
 	 ?_assertMatch([_, _], db:q("select * from fruit " ++ db:limit_clause(2, 1))),
 	 ?_assertMatch([_, _], db:q("select * from fruit " ++ db:limit_clause(2, -1))),
-	 ?_assertMatch([_], db:q("select * from fruit " ++ db:limit_clause(-123, 5)))
+	 ?_assertMatch([_], db:q("select * from fruit " ++ db:limit_clause(-123, 5))),
+	 ?_assertEqual(1.1, test_float(1.1)),
+	 ?_assertEqual(12345.5, test_float(12345.5))
 	].
+
+test_float(Val) ->
+	Fruitid = db:pl(fruit, [{some_float, Val}]),
+	db:field(fruit, some_float, Fruitid).
 
 update_apple_to_orange() ->
 	Fruitid = db:fffr(["Select fruitid from fruit where fruit=",?P1], ["apple"]),

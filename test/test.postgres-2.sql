@@ -5,10 +5,12 @@ alter default privileges
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, USAGE ON sequences TO sql_bridge_user;
 
+drop table if exists fruit;
 create table fruit (
 	fruitid serial primary key,
 	fruit varchar(50),
 	description text,
 	quantity integer,
-	picture bytea
+	picture bytea,
+	some_float float
 );

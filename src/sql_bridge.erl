@@ -390,7 +390,6 @@ dfr(Q, ParamList) ->
 fr(Q,ParamList) ->
     case q(Q,ParamList) of
         [] -> not_found;
-        [[undefined]] -> not_found;
         [First|_] -> First
     end.
 
