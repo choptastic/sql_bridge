@@ -173,11 +173,12 @@ main_tests(_) ->
 	 ?_assertEqual(not_found, db:dfr("select * from fruit")),
 
 	 ?_assertMatch([fruitid, fruit, description, quantity, picture, some_float], db:table_fields(fruit)),
-	 ?_assert(is_integer(db:qi(["insert into fruit(fruit, quantity) values(", ?P1, ",", ?P2, ")"], ["apple", 5]))),
+	 ?_assert(is_integer(db:qi(["insert into fruit(fruit, quantity, some_float) values(", ?P1, ",", ?P2, ",", ?P3,")"], ["apple", 5, 10.1]))),
 	 ?_assertEqual(undefined, db:fffr("select description from fruit where fruit='apple'")),
 	 ?_assertEqual(5, db:fffr(["select quantity from fruit where fruit=",?P1 ], [apple])),
 	 ?_assertEqual("apple", db:fffr(["select fruit from fruit where quantity=", ?P1], [5])),
-	 ?_assert(is_integer(db:pl(fruit, [{fruitid, 0}, {fruit, <<"banana">>}, {quantity, 100}, {description, "long and yellow"}]))),
+	 ?_assert(is_integer(db:pl(fruit, [{fruitid, 0}, {fruit, <<"banana">>}, {quantity, 100}, {description, "long and yellow"}, {some_float, 6.1}]))),
+	 ?_assert(is_float(db:fffr("select sum(some_float) from fruit"))),
 	 ?_assertMatch("long and yellow", db:field(fruit, description, fruit, "banana")),
 
 	 ?_assertEqual([["apple", 5], ["banana", 100]], db:q("select fruit, quantity from fruit order by fruit")),
