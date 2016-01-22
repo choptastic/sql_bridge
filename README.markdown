@@ -247,7 +247,7 @@ For our example, we're going to have a table called `player`:
 
 ##### Multi-record Queries
 
-  * `db:maps` or `db:q`: The most basic query. Will return a list of rows formatted as
+  * `db:lists` or `db:q`: The most basic query. Will return a list of rows formatted as
     simple lists.
 
     ```erlang
