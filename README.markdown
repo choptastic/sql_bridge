@@ -427,4 +427,4 @@ SQL_Bridge supports transactions through two mechanisms:
 Copyright (c) 2013-2016 [Jesse Gumm](http://sigma-star.com/page/jesse)
 ([@jessegumm](http://twitter.com/jessegumm))
 
-MIT License
+[MIT License](https://github.com/choptastic/sql_bridge/blob/master/LICENSE)
