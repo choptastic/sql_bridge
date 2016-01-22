@@ -597,3 +597,6 @@ offset(PerPage, Page) when PerPage < 1 ->
 offset(PerPage, Page) when Page > 0 ->
     (Page-1) * PerPage.
 
+%% Exported as a convenience
+q_prep(Q, ParamList) ->
+    sql_bridge_utils:q_prep(Q, ParamList).

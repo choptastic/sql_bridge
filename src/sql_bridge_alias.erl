@@ -19,9 +19,11 @@ build_stringify(Stringify) ->
 	end.
 
 build_maybe_string(false) ->
-	"maybe_string(B) -> B.";
+	"maybe_string(null) -> undefined;
+	 maybe_string(B) -> B.";
 build_maybe_string(true) ->
-	"maybe_string(B) -> sql_bridge_utils:binary_to_string(B).".
+	"maybe_string(null) -> undefined;
+	 maybe_string(B) -> sql_bridge_utils:binary_to_string(B).".
 
 stringify_msg_base() ->
 	"Building sql_bridge_stringify.".
