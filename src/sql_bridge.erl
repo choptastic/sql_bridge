@@ -30,6 +30,11 @@
 -type return_type() :: dict | list | proplist | tuple | insert | update.
 -type return_value() :: insert_id() | affected_rows()
                         | [list() | tuple() | t_dict() | proplist()].
+-ifdef(has_maps).
+-type proplist_or_map() :: proplist() | map().
+-else.
+-type proplist_or_map() :: proplist().
+-endif.
 
 -export_type([
     sql/0,
@@ -123,23 +128,27 @@ connect(DB) when is_atom(DB) ->
     ok = ?ADAPTER:connect(DB, ?USER, ?PASS, ?HOST, ?PORT),
     DB.
 
--spec pl(Table :: table(), Proplist :: proplist()) -> insert_id() | affected_rows().
-% @doc Shortcut for pl(Table, Table ++ "id", PropList)
-pl(Table,PropList) when is_atom(Table) ->
-    pl(atom_to_list(Table),PropList);
-pl(Table,PropList) when is_list(Table) ->
-    KeyField = Table ++ "id",
-    pl(Table,KeyField,PropList).
+-spec save(Table :: table(), Data :: proplist_or_map()) -> insert_id() | affected_rows().
+save(Table, Data0) ->
+    Data = ensure_proplist(Data0),
+    save_(Table, Data).
 
--spec pl(Table :: table(), KeyField :: field(), PropList :: proplist()) -> insert_id() | affected_rows().
-% @doc Inserts into or updates a table based on the value of the KeyField i1n
-% PropList. If get_value(KeyField, PropList) is "0", 0, or undefined, then
-% insert, otherwise update
-pl(Table,KeyField,PropList) when is_atom(Table) ->
-    pl(atom_to_list(Table),KeyField,PropList);
-pl(Table,KeyField,PropList) when is_list(KeyField) ->
-    pl(Table,list_to_atom(KeyField),PropList);
-pl(Table,KeyField,PropList) when is_list(Table) ->
+-spec save(Table :: table(), KeyField :: field(), Data0 :: proplist_or_map()) -> insert_id().
+save(Table, KeyField, Data0) ->
+    Data = ensure_proplist(Data0),
+    save_(Table, KeyField, Data).
+    
+save_(Table,PropList) when is_atom(Table) ->
+    save_(atom_to_list(Table),PropList);
+save_(Table,PropList) when is_list(Table) ->
+    KeyField = Table ++ "id",
+    save_(Table,KeyField,PropList).
+
+save_(Table,KeyField,PropList) when is_atom(Table) ->
+    save_(atom_to_list(Table),KeyField,PropList);
+save_(Table,KeyField,PropList) when is_list(KeyField) ->
+    save_(Table,list_to_atom(KeyField),PropList);
+save_(Table,KeyField,PropList) when is_list(Table) ->
     KeyValue = proplists:get_value(KeyField,PropList,0),
     case KeyValue of
         Zero when Zero == 0;
@@ -151,6 +160,17 @@ pl(Table,KeyField,PropList) when is_list(Table) ->
         _ -> 
             plu(Table,KeyField,PropList)
     end.
+
+
+-ifdef(has_maps).
+ensure_proplist(Map) when is_map(Map) ->
+    maps:to_list(Map);
+ensure_proplist(PL) when is_list(PL) ->
+    PL.
+-else.
+ensure_proplist(PL) when is_list(PL) ->
+    PL.
+-endif.
 
 -spec filter_fields(Table :: table(), PropList :: proplist()) -> proplist().
 % @doc removes from Proplist any fields that aren't found in the table "Table"
