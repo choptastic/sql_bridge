@@ -217,8 +217,13 @@ main_tests(_) ->
 	 ?_assertMatch([_, _], db:q("select * from fruit " ++ db:limit_clause(2, -1))),
 	 ?_assertMatch([_], db:q("select * from fruit " ++ db:limit_clause(-123, 5))),
 	 ?_assertEqual(1.1, test_float(1.1)),
-	 ?_assertEqual(12345.5, test_float(12345.5))
+	 ?_assertEqual(12345.5, test_float(12345.5)),
+     ?_assertMatch({2012,12,31}, test_date({2012,12,31}))
 	].
+
+test_date(Date) ->
+    Fruitid = db:qi("insert into fruit(mydate) values(?)", [Date]),
+    db:field(fruit, mydate, Fruitid).
 
 test_float(Val) ->
 	Fruitid = db:pl(fruit, [{some_float, Val}]),

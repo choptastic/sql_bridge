@@ -9,5 +9,6 @@ create table fruit (
 	description text,
 	quantity integer,
 	picture blob,
-	some_float float
+	some_float float,
+	mydate date
 ) character set utf8 engine=innodb;
