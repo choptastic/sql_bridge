@@ -125,5 +125,7 @@ format_value(_, V) ->
 %% 'true' and 'false' with <<"1">> and <<"0">> respectively.
 encode(true) -> <<"1">>;
 encode(false) -> <<"0">>;
+encode({Y,M,D}) when is_integer(Y), is_integer(M), is_integer(D) ->
+    "'" ++ integer_to_list(Y) ++ "-" ++ integer_to_list(M) ++ "-" ++ integer_to_list(D) ++ "'";
 encode(Other) -> emysql_conn:encode(Other, binary).
 
