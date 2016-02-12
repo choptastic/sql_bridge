@@ -128,6 +128,14 @@ connect(DB) when is_atom(DB) ->
     ok = ?ADAPTER:connect(DB, ?USER, ?PASS, ?HOST, ?PORT),
     DB.
 
+-spec pl(Table :: table(), Data :: proplist_or_map()) -> insert_id() | affected_rows().
+pl(Table, Data) ->
+    save(Table, Data).
+
+-spec pl(Table :: table(), KeyField :: field(), Data :: proplist_or_map()) -> insert_id() | affected_rows().
+pl(Table, KeyField, Data) ->
+    save(Table, KeyField, Data).
+
 -spec save(Table :: table(), Data :: proplist_or_map()) -> insert_id() | affected_rows().
 save(Table, Data0) ->
     Data = ensure_proplist(Data0),
