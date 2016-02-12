@@ -12,6 +12,11 @@ create table fruit (
 	description text,
 	quantity integer,
 	picture bytea,
-	some_float float,
+	some_float float
+);
+
+drop table if exists datestuff;
+create table datestuff (
+	datestuffid serial primary key,
 	mydate date
 );

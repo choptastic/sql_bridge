@@ -9,6 +9,10 @@ create table fruit (
 	description text,
 	quantity integer,
 	picture blob,
-	some_float float,
-	mydate date
+	some_float float
 ) character set utf8 engine=innodb;
+
+create table datestuff (
+	datestuffid int auto_increment primary key,
+	mydate date
+);

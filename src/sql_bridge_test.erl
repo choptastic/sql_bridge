@@ -222,8 +222,8 @@ main_tests(_) ->
 	].
 
 test_date(Date) ->
-    Fruitid = db:qi("insert into fruit(mydate) values(?)", [Date]),
-    db:field(fruit, mydate, Fruitid).
+    DSid = db:qi("insert into datestuff(mydate) values(?)", [Date]),
+    db:field(datestuff, mydate, DSid).
 
 test_float(Val) ->
 	Fruitid = db:pl(fruit, [{some_float, Val}]),
