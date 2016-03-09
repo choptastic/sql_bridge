@@ -145,7 +145,16 @@ save(Table, Data0) ->
 save(Table, KeyField, Data0) ->
     Data = ensure_proplist(Data0),
     save_(Table, KeyField, Data).
-    
+
+-spec save_record(Table :: table(), Record :: tuple(), FieldMap :: [atom()]) -> insert_id() | affected_rows().
+save_record(Table, Record, FieldMap) ->
+    NumberedFields = lists:zip(lists:seq(2, length(FieldMap)+1), FieldMap),
+    PL = lists:map(fun({ElNum, Field}) ->
+        Value = element(ElNum, Record),
+        {Field, Value}
+    end, NumberedFields),
+    save(Table, PL).
+
 save_(Table,PropList) when is_atom(Table) ->
     save_(atom_to_list(Table),PropList);
 save_(Table,PropList) when is_list(Table) ->
