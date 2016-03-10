@@ -349,7 +349,7 @@ db_q(Type, Db, Q, ParamList, RemainingAttempts) ->
             connect(Db),
             db_q(Type, Db, Q, ParamList, RemainingAttempts-1);
         {error, disconnected} ->
-            error_logger:warning_msg("WARN: Disconnected Worker in pool: ~p~n",[Db]),
+            error_logger:warning_msg("WARN: Disconnected worker in pool: ~p~n",[Db]),
             db_q(Type, Db, Q, ParamList, RemainingAttempts-1)
     end.
 
