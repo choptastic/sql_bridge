@@ -62,7 +62,14 @@ query(Type, DB, Q, ParamList) ->
 	try query_catched(Type, DB, Q, ParamList)
 	catch
 		exit:{noproc, _} ->
-			{error, no_pool}
+			{error, no_pool};
+        exit:{{{badmatch,{error,closed}}, _}, _} ->
+            {error, disconnected};
+        exit:{{{case_clause,{error,closed}}, _}, _} ->
+            {error, disconnected};
+        E:T ->
+            error_logger:info_msg("Unhandled Error: ~p:~p", [E,T]),
+            throw(unhandled_error)
 	end.
 
 query_catched(Type, DB, Q, ParamList) ->
