@@ -128,15 +128,15 @@ connect(DB) when is_atom(DB) ->
     ok = ?ADAPTER:connect(DB, ?USER, ?PASS, ?HOST, ?PORT),
     DB.
 
--spec pl(Table :: table(), Data :: proplist_or_map()) -> insert_id() | affected_rows().
+-spec pl(Table :: table(), Data :: proplist_or_map()) -> insert_id().
 pl(Table, Data) ->
     save(Table, Data).
 
--spec pl(Table :: table(), KeyField :: field(), Data :: proplist_or_map()) -> insert_id() | affected_rows().
+-spec pl(Table :: table(), KeyField :: field(), Data :: proplist_or_map()) -> insert_id().
 pl(Table, KeyField, Data) ->
     save(Table, KeyField, Data).
 
--spec save(Table :: table(), Data :: proplist_or_map()) -> insert_id() | affected_rows().
+-spec save(Table :: table(), Data :: proplist_or_map()) -> insert_id().
 save(Table, Data0) ->
     Data = ensure_proplist(Data0),
     save_(Table, Data).
@@ -146,10 +146,15 @@ save(Table, KeyField, Data0) ->
     Data = ensure_proplist(Data0),
     save_(Table, KeyField, Data).
 
--spec save_record(Table :: table(), Record :: tuple(), FieldMap :: [atom()]) -> insert_id() | affected_rows().
+-spec save_record(Table :: table(), Record :: tuple(), FieldMap :: [atom()]) -> insert_id().
 save_record(Table, Record, FieldMap) ->
     PL = sql_bridge_utils:record_to_proplist(Record, FieldMap),
     save(Table, PL).
+
+-spec save_record(Table :: table(), KeyField :: field(), Record :: tuple(), FieldMap :: [atom()]) -> insert_id().
+save_record(Table, KeyField, Record, FieldMap) ->
+    PL = sql_bridge_utils:record_to_proplist(Record, FieldMap),
+    save(Table, KeyField, PL).
 
 save_(Table,PropList) when is_atom(Table) ->
     save_(atom_to_list(Table),PropList);
