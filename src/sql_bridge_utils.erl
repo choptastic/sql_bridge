@@ -2,6 +2,8 @@
 -module(sql_bridge_utils).
 -export([
     get_env/2,
+    record_handler/0,
+    convert_record/1,
     start_poolboy_pool/3,
     to_string/1,
     with_poolboy_pool/2,
@@ -16,7 +18,8 @@
     create_placeholder/1,
     to_atom/1,
     checkout_pool/1,
-    checkin_pool/1
+    checkin_pool/1,
+    record_to_proplist/2
 ]).
 
 replacement_token() ->
@@ -29,6 +32,17 @@ replacement_token() ->
 
 stringify_binaries() ->
     get_env(stringify_binaries, false).
+
+record_handler() ->
+    case get_env(record_handler, undefined) of
+        undefined -> throw("No record handler defined");
+        F when is_function(F) -> F;
+        {Mod, Fun} -> fun Mod:Fun/1
+    end.
+
+convert_record(Record) ->
+    Handler = record_handler(),
+    Handler(Record).
 
 start_poolboy_pool(Name, WorkerArgs, WorkerModule) ->
     Size = get_env(connections_per_pool, 10),
@@ -202,3 +216,10 @@ to_atom(A) when is_list(A) ->
     list_to_atom(A);
 to_atom(A) when is_atom(A) ->
     A.
+
+record_to_proplist(Record, FieldMap) ->
+    NumberedFields = lists:zip(lists:seq(2, length(FieldMap)+1), FieldMap),
+    lists:map(fun({ElNum, Field}) ->
+        Value = element(ElNum, Record),
+        {Field, Value}
+    end, NumberedFields).

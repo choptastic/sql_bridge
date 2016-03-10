@@ -148,11 +148,7 @@ save(Table, KeyField, Data0) ->
 
 -spec save_record(Table :: table(), Record :: tuple(), FieldMap :: [atom()]) -> insert_id() | affected_rows().
 save_record(Table, Record, FieldMap) ->
-    NumberedFields = lists:zip(lists:seq(2, length(FieldMap)+1), FieldMap),
-    PL = lists:map(fun({ElNum, Field}) ->
-        Value = element(ElNum, Record),
-        {Field, Value}
-    end, NumberedFields),
+    PL = sql_bridge_utils:record_to_proplist(Record, FieldMap),
     save(Table, PL).
 
 save_(Table,PropList) when is_atom(Table) ->
@@ -180,11 +176,15 @@ save_(Table,KeyField,PropList) when is_list(Table) ->
 
 
 -ifdef(has_maps).
+ensure_proplist(Record) when is_atom(element(1, Record)) ->
+    ensure_proplist(sql_bridge_utils:convert_record(Record));
 ensure_proplist(Map) when is_map(Map) ->
     maps:to_list(Map);
 ensure_proplist(PL) when is_list(PL) ->
     PL.
 -else.
+ensure_proplist(Record) when is_atom(element(1, Record)) ->
+    ensure_proplist(sql_bridge_utils:convert_record(Record));
 ensure_proplist(PL) when is_list(PL) ->
     PL.
 -endif.
