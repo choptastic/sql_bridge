@@ -454,6 +454,12 @@ SQL_Bridge supports transactions through two mechanisms:
     offset calculation for you and return a limit clause that can be inserted into
     the query.
 
+## Known Issues
+
+There are a number of inconsistencies between backends with regard to handling
+date formats and decimal values.  Some backends use `{2016,4,3}` while others
+will return "2016-04-03".  We need to ensure that the return values are
+consistent between backends.
    
 ## TODO
 
