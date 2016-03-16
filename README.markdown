@@ -381,7 +381,7 @@ SQL_Bridge can work with records, however, since records are done at compile tim
 
   * `db:save_record(Table, KeyField, Record, FieldList)`: In order to call this effectively, you must pass the return value of the built-in compile function `record_info(fields, RECORDNAME)` as the argument for `FieldList`. For example, if you have a record called `#foo` that is saved into the table `foo_tbl` you could save it like this:  `db:save_record(foo_tbl, fooid, FooRec, record_info(fields, foo))`
 
- * `db:save_record(Table, Record, FieldList`: Like `db:save/2`, this will automatically determine the KeyField as `list_to_atom(atom_to_list(Table) ++ "id")`.
+  * `db:save_record(Table, Record, FieldList`: Like `db:save/2`, this will automatically determine the KeyField as `list_to_atom(atom_to_list(Table) ++ "id")`.
 
 #### Using a Record Handler
 
@@ -426,7 +426,7 @@ SQL_Bridge supports transactions through two mechanisms:
 	 a transaction. Note, if you run something like `db:q("BEGIN")`, SQL_Bridge
     is not intelligent enough to determine that you're in a transaction. Please use
     `db:start_trans()`.
-2. `db:trans(Fun)` - Mnesia-style transactions where the contents of the
+  2. `db:trans(Fun)` - Mnesia-style transactions where the contents of the
 	 function are run within a transaction.  Note that `Fun` is of arity 0
     (that is, no arguments). If the function completes successfully, the queries
     executed will be commited, and the return value of the `Fun()` will be the
