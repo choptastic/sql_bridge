@@ -87,7 +87,6 @@ mysql_query(Worker, Q, ParamList) ->
 	mysql:query(Worker, Q, ParamList2).
 
 pre_encode_booleans(List) ->
-    error_logger:info_msg("Encoding List: ~w", [List]),
     lists:map(fun(true) -> 1;
                  (false) -> 0;
                  (X) -> X
