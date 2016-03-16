@@ -554,6 +554,10 @@ delete(Table,KeyField,ID) ->
 
 sanitize(V) when is_list(V) ->
     sanitize(unicode:characters_to_binary(V));
+sanitize(true) ->
+    true;
+sanitize(false) ->
+    false;
 sanitize(A) when is_atom(A) ->
     sanitize(atom_to_list(A));
 sanitize(V) ->

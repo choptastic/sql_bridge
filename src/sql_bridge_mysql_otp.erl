@@ -62,14 +62,7 @@ query(Type, DB, Q, ParamList) ->
 	try query_catched(Type, DB, Q, ParamList)
 	catch
 		exit:{noproc, _} ->
-			{error, no_pool};
-        exit:{{{badmatch,{error,closed}}, _}, _} ->
-            {error, disconnected};
-        exit:{{{case_clause,{error,closed}}, _}, _} ->
-            {error, disconnected};
-        E:T ->
-            error_logger:info_msg("Unhandled Error: ~p:~p", [E,T]),
-            throw(unhandled_error)
+			{error, no_pool}
 	end.
 
 query_catched(Type, DB, Q, ParamList) ->
@@ -90,7 +83,15 @@ query_catched(Type, DB, Q, ParamList) ->
 mysql_query(Worker, Q, []) ->
 	mysql:query(Worker, Q);
 mysql_query(Worker, Q, ParamList) ->
-	mysql:query(Worker, Q, ParamList).
+    ParamList2 = pre_encode_booleans(ParamList),
+	mysql:query(Worker, Q, ParamList2).
+
+pre_encode_booleans(List) ->
+    error_logger:info_msg("Encoding List: ~w", [List]),
+    lists:map(fun(true) -> 1;
+                 (false) -> 0;
+                 (X) -> X
+              end, List).
 
 maybe_replace_tokens(Q, ParamList) ->
 	case sql_bridge_utils:replacement_token() of
