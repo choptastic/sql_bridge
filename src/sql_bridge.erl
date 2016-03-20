@@ -355,7 +355,10 @@ db_q(Type, Db, Q, ParamList, RemainingAttempts) ->
             db_q(Type, Db, Q, ParamList, RemainingAttempts-1);
         {error, disconnected} ->
             error_logger:warning_msg("WARN: Disconnected worker in pool: ~p~n",[Db]),
-            db_q(Type, Db, Q, ParamList, RemainingAttempts-1)
+            db_q(Type, Db, Q, ParamList, RemainingAttempts-1);
+        {error, Other} ->
+            error_logger:error_msg("Error in SQL Statement or Adapter:~nDB: ~p~nSQL: ~p~nParams: ~p~nError Message: ~p",[Db, Q, ParamList, Other]),
+            exit(unknown_error)
     end.
 
 -spec qi(Q :: sql()) -> insert_id().
