@@ -70,7 +70,6 @@ with_poolboy_pool(DB, Fun) ->
             poolboy:checkin(DB, Worker),
             Return;
         {ok, Worker} ->
-            io:format("~p in trans: ~p~n",[self(), Worker]),
             _Return = Fun(Worker)
     end.
 
