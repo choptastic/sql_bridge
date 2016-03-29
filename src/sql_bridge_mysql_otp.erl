@@ -141,7 +141,12 @@ format_lists(Rows) ->
 	end.
 
 format_list(Row) when is_list(Row) ->
-	[sql_bridge_stringify:maybe_string(V) || V <- Row].
+	[normalize_value(V) || V <- Row].
+
+normalize_value({Y,M,D}) ->
+	lists:flatten(io_lib:format("~w-~w-~w", [Y,M,D]));
+normalize_value(V) ->
+	sql_bridge_stringify:maybe_string(V).
 
 format_proplists(Columns, Rows) ->
 	ColNames = extract_colnames(Columns),
@@ -157,7 +162,7 @@ make_dict(Cols, Row) when is_list(Row) ->
 make_dict([], [], Dict) ->
 	Dict;
 make_dict([Col|Cols], [Val|Vals], Dict) ->
-	Val2 = sql_bridge_stringify:maybe_string(Val),
+	Val2 = normalize_value(Val),
 	NewDict = dict:store(Col, Val2, Dict),
 	make_dict(Cols, Vals, NewDict).
 	
@@ -167,7 +172,7 @@ extract_colnames(Columns) ->
 make_proplist(Columns, Row) when is_tuple(Row) ->
 	make_proplist(Columns, tuple_to_list(Row));
 make_proplist([Col|Cols], [Val|Vals]) ->
-	Val2 = sql_bridge_stringify:maybe_string(Val),
+	Val2 = normalize_value(Val),
 	[{Col, Val2} | make_proplist(Cols, Vals)];
 make_proplist([], []) ->
 	[].
@@ -183,7 +188,7 @@ make_map(Cols, Row) ->
 make_map([], [], Map) ->
 	Map;
 make_map([Col|Cols],[Val|Vals], Map) ->
-	Val2 = sql_bridge_stringify:maybe_string(Val),
+	Val2 = normalize_value(Val),
 	NewMap = maps:put(Col, Val2, Map),
 	make_map(Cols, Vals, NewMap).
 
