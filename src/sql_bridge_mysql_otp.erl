@@ -90,12 +90,13 @@ query_catched(Type, DB, Q, ParamList) ->
 mysql_query(Worker, Q, []) ->
 	mysql:query(Worker, Q);
 mysql_query(Worker, Q, ParamList) ->
-    ParamList2 = pre_encode_booleans(ParamList),
+    ParamList2 = pre_encode(ParamList),
 	mysql:query(Worker, Q, ParamList2).
 
-pre_encode_booleans(List) ->
+pre_encode(List) ->
     lists:map(fun(true) -> 1;
                  (false) -> 0;
+                 (undefined) -> null;
                  (X) -> X
               end, List).
 

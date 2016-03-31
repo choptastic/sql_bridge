@@ -172,6 +172,7 @@ save_(Table,KeyField,PropList) when is_list(Table) ->
         Zero when Zero == 0;
                   Zero == "0";
                   Zero == undefined;
+                  Zero == null;
                   Zero == "";
                   Zero == <<>> -> 
             pli(Table,lists:keydelete(KeyField,1,PropList));
@@ -561,6 +562,8 @@ sanitize(true) ->
     true;
 sanitize(false) ->
     false;
+sanitize(undefined) ->
+    undefined;
 sanitize(A) when is_atom(A) ->
     sanitize(atom_to_list(A));
 sanitize(V) ->
