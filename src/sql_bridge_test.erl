@@ -217,8 +217,33 @@ main_tests(_) ->
 	 ?_assertMatch([_, _], db:q("select * from fruit " ++ db:limit_clause(2, -1))),
 	 ?_assertMatch([_], db:q("select * from fruit " ++ db:limit_clause(-123, 5))),
 	 ?_assertEqual(1.1, test_float(1.1)),
-	 ?_assertEqual(12345.5, test_float(12345.5))
+	 ?_assertEqual(12345.5, test_float(12345.5)),
+     ?_assertEqual(12.5, test_decimal(12.5)),
+     ?_assertEqual(undefined, test_null()),
+     ?_assertEqual("2016-12-31", test_date("2016-12-31")),
+     ?_assertEqual("23:00:00", test_time("23:00:00")),
+     ?_assertEqual("2016-12-31 23:00:00", test_datetime("2016-12-31 23:00:00"))
 	].
+
+test_decimal(V) ->
+    test_in_out_other(my_decimal, V).
+
+test_date(V) ->
+    test_in_out_other(my_date, V).
+
+test_time(V) ->
+    test_in_out_other(my_time, V).
+
+test_datetime(V) ->
+    test_in_out_other(my_datetime, V).
+
+test_null() ->
+    ID = db:pl(other, [{otherid, 0}, {my_decimal, 123.5}]),
+    db:field(other, my_date, ID).
+
+test_in_out_other(Field, V) ->
+    ID = db:pl(other, [{Field, V}]),
+    db:field(other, Field, ID).
 
 test_float(Val) ->
 	Fruitid = db:pl(fruit, [{some_float, Val}]),
