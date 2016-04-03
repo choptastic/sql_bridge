@@ -144,8 +144,8 @@ format_lists(Rows) ->
 format_list(Row) when is_list(Row) ->
 	[normalize_value(V) || V <- Row].
 
-normalize_value({Y,M,D}) ->
-	lists:flatten(io_lib:format("~w-~w-~w", [Y,M,D]));
+normalize_value(V) when is_tuple(V) ->
+    sql_bridge_utils:format_datetime(V);
 normalize_value(V) ->
 	sql_bridge_stringify:maybe_string(V).
 

@@ -19,7 +19,8 @@
     to_atom/1,
     checkout_pool/1,
     checkin_pool/1,
-    record_to_proplist/2
+    record_to_proplist/2,
+    format_datetime/1
 ]).
 
 replacement_token() ->
@@ -222,3 +223,21 @@ record_to_proplist(Record, FieldMap) ->
         Value = element(ElNum, Record),
         {Field, Value}
     end, NumberedFields).
+
+format_datetime({{Y,M,D},{H,I,S}}) ->
+    to_bin_or_str(io_lib:format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B", [Y,M,D,H,I,S]));
+format_datetime({0, {H,I,S}}) ->
+    to_bin_or_str(io_lib:format("~2..0B:~2..0B:~2..0B", [H,I,S]));
+format_datetime({Y,M,D}) ->
+	to_bin_or_str(io_lib:format("~4..0B-~2..0B-~2..0B", [Y,M,D])).
+
+to_bin_or_str(B) when is_binary(B) ->
+    case stringify_binaries() of
+        true -> sql_bridge_stringify:maybe_string(B);
+        false -> B
+    end;
+to_bin_or_str(L) when is_list(L) ->
+    case stringify_binaries() of
+        true -> lists:flatten(L);
+        false -> iolist_to_binary(L)
+    end.
