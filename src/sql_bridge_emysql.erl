@@ -117,8 +117,10 @@ format_value(_, null) ->
 	undefined;
 format_value(true, V) when is_binary(V) ->
 	sql_bridge_utils:binary_to_string(V);
+format_value(_, V) when is_tuple(V) ->
+    sql_bridge_utils:format_datetime(V);
 format_value(_, V) ->
-	V.
+    V.
 
 -spec encode(V :: any()) -> binary().
 %% @doc Safely encodes text for insertion into a query.  Replaces the atoms
