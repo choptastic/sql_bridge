@@ -224,10 +224,18 @@ record_to_proplist(Record, FieldMap) ->
         {Field, Value}
     end, NumberedFields).
 
+format_datetime({{Y,M,D},{H,I,S}}) when is_float(S) ->
+    format_datetime({{Y,M,D},{H,I,erlang:trunc(S)}});
 format_datetime({{Y,M,D},{H,I,S}}) ->
     to_bin_or_str(io_lib:format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B", [Y,M,D,H,I,S]));
-format_datetime({0, {H,I,S}}) ->
+format_datetime({time, {H,I,S}}) ->
+    format_datetime({0, {H,I,S}});
+format_datetime({0, {H,I,S}}) when is_integer(S) ->
     to_bin_or_str(io_lib:format("~2..0B:~2..0B:~2..0B", [H,I,S]));
+format_datetime({0, {H,I,S}}) when is_float(S) ->
+    format_datetime({0, {H,I,erlang:trunc(S)}});
+format_datetime({H,I,S}) when is_float(S) ->
+    format_datetime({0, {H,I,S}});
 format_datetime({Y,M,D}) ->
 	to_bin_or_str(io_lib:format("~4..0B-~2..0B-~2..0B", [Y,M,D])).
 
