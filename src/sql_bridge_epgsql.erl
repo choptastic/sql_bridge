@@ -101,7 +101,7 @@ format_result(Type, {ok, _Count, Columns, Rows}) ->
     format_result(Type, {ok, Columns, Rows});
 format_result(Type, {ok, Columns, Rows}) ->
     ColTypes = columns_to_coltypes(Columns),
-    io:format("ColTypes: ~p",[ColTypes]),
+    io:format("Type: ~p. ColTypes: ~p~n",[Type, ColTypes]),
     format_result_inner(Type, {ok, ColTypes, Rows}).
 
 format_result_inner(tuple, {ok, Columns, Rows}) ->
@@ -118,13 +118,17 @@ format_result_inner(map, {ok, Columns, Rows}) ->
 columns_to_coltypes(Columns) ->
     [{list_to_atom(binary_to_list(Col)), Type} || {column, Col, Type, _, _, _} <- Columns].
 
+normalize_value(numeric, B) when is_binary(B) ->
+    normalize_value(numeric, binary_to_list(B));
 normalize_value(numeric, V) when is_list(V) ->
-    try list_to_float(V)
+    V2 = try list_to_float(V)
     catch _:_ ->
         try list_to_integer(V)
         catch _:_ -> V
         end
-    end;
+    end,
+    io:format("Normalized ~p => ~p~n",[V, V2]),
+    V2;
 normalize_value(_Type, V) when is_tuple(V) ->
     sql_bridge_utils:format_datetime(V);
 normalize_value(_Type, V) ->
@@ -146,6 +150,7 @@ format_list(Columns, Row) when is_list(Row) ->
 
 make_list(Cols, Vals) ->
     ColVals = lists:zip(Cols, Vals),
+    io:format("Making List from ColVals: ~p. Vals: ~p~n",[ColVals, Vals]),
 	[normalize_value(Type, Val) || {{_Col, Type}, Val} <- ColVals].
 
 format_proplists(Columns, Rows) ->
