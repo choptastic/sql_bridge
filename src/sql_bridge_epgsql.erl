@@ -120,13 +120,12 @@ columns_to_coltypes(Columns) ->
 normalize_value(numeric, B) when is_binary(B) ->
     normalize_value(numeric, binary_to_list(B));
 normalize_value(numeric, V) when is_list(V) ->
-    V2 = try list_to_float(V)
+    try list_to_float(V)
     catch _:_ ->
         try list_to_integer(V)
         catch _:_ -> V
         end
-    end,
-    V2;
+    end;
 normalize_value(_Type, V) when is_tuple(V) ->
     sql_bridge_utils:format_datetime(V);
 normalize_value(_Type, V) ->
