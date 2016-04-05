@@ -100,6 +100,7 @@ format_result(Type, {ok, _Count, Columns, Rows}) ->
     format_result(Type, {ok, Columns, Rows});
 format_result(Type, {ok, Columns, Rows}) ->
     ColTypes = columns_to_coltypes(Columns),
+    io:format("ColTypes: ~p",[ColTypes]),
     format_result_inner(Type, {ok, ColTypes, Rows}).
 
 format_result_inner(tuple, {ok, Columns, Rows}) ->
@@ -114,7 +115,7 @@ format_result_inner(map, {ok, Columns, Rows}) ->
 	format_maps(Columns, Rows).
 
 columns_to_coltypes(Columns) ->
-    [{sql_bridge_utils:to_atom(Col), Type} || {column, Col, Type, _, _, _} <- Columns].
+    [{list_to_atom(binary_to_list(Col)), Type} || {column, Col, Type, _, _, _} <- Columns].
 
 normalize_value(numeric, V) when is_list(V) ->
     try list_to_float(V)
