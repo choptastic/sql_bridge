@@ -101,7 +101,6 @@ format_result(Type, {ok, _Count, Columns, Rows}) ->
     format_result(Type, {ok, Columns, Rows});
 format_result(Type, {ok, Columns, Rows}) ->
     ColTypes = columns_to_coltypes(Columns),
-    io:format("Type: ~p. ColTypes: ~p~n",[Type, ColTypes]),
     format_result_inner(Type, {ok, ColTypes, Rows}).
 
 format_result_inner(tuple, {ok, Columns, Rows}) ->
@@ -127,7 +126,6 @@ normalize_value(numeric, V) when is_list(V) ->
         catch _:_ -> V
         end
     end,
-    io:format("Normalized ~p => ~p~n",[V, V2]),
     V2;
 normalize_value(_Type, V) when is_tuple(V) ->
     sql_bridge_utils:format_datetime(V);
@@ -150,7 +148,6 @@ format_list(Columns, Row) when is_list(Row) ->
 
 make_list(Cols, Vals) ->
     ColVals = lists:zip(Cols, Vals),
-    io:format("Making List from ColVals: ~p. Vals: ~p~n",[ColVals, Vals]),
 	[normalize_value(Type, Val) || {{_Col, Type}, Val} <- ColVals].
 
 format_proplists(Columns, Rows) ->
