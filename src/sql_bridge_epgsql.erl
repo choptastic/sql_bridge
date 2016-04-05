@@ -79,7 +79,8 @@ query_catched(Type, DB, Q, ParamList) ->
 	{ok, format_result(Type, Res)}.
 	
 format_insert_id({ok, Columns, Rows}) ->
-	case format_lists(Columns, Rows) of
+    ColTypes = columns_to_coltypes(Columns),
+	case format_lists(ColTypes, Rows) of
 		[[Insertid]] -> Insertid;
 		_ -> undefined
 	end.
