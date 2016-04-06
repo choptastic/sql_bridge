@@ -454,12 +454,17 @@ SQL_Bridge supports transactions through two mechanisms:
     offset calculation for you and return a limit clause that can be inserted into
     the query.
 
-## Known Issues
+## Some Quirks
 
-There are a number of inconsistencies between backends with regard to handling
-date formats and decimal values.  Some backends use `{2016,4,3}` while others
-will return "2016-04-03".  We need to ensure that the return values are
-consistent between backends.
+There are a number of quirks to get comfortable with when using sql_bridge:
+
+  * Dates, times, and timestamps are returned as a string (or binary), like
+	"2016-12-31", "23:15:46", or "2016-12-31 23:15:46". This is largely for
+    backwards compatibility with the original implementation which returned
+    returned dates and times as strings, and since so much of my code depends on
+    this, it's just like it.
+  * Numeric and Decimal types are returned as floats or integers. Again, this
+    is because of some code I have that depends on it.
    
 ## TODO
 
