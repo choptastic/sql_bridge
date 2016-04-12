@@ -471,14 +471,22 @@ ffl(Q) ->
 %% deprecate this. Use "fields"
 table_fields(Table) when is_atom(Table) ->
     table_fields(atom_to_list(Table));
-table_fields(Table) ->
-    DB = atom_to_list(db()),
+table_fields(Table0) ->
+    {DB, Table} = table_and_db(Table0),
     [T1, T2] = sql_bridge_utils:create_placeholders(2),
     DBCol = ?ADAPTER:schema_db_column(),
     SQL = [<<"select column_name
              from information_schema.columns
              where ">>,DBCol,<<"=">>,T1,<<" and table_name=">>,T2],
     [sql_bridge_utils:to_atom(F) || F <- ffl(SQL, [DB, Table])].
+
+table_and_db(Table) ->
+    case string:tokens(Table, ".") of
+        [DB, TableOnly] ->
+            {DB, TableOnly};
+        [TableOnly] ->
+            {db(), TableOnly}
+    end.
 
 -spec fields(Table :: table()) -> [atom()].
 fields(Table) ->
