@@ -1,3 +1,9 @@
+## v0.2.1
+  * Normalize return values for date, time, timestamp, and decimal types.
+  * Fix `db:save` to properly decompose tables of the `database.tablename`
+    format.
+  * Add more tests
+
 ## v0.2.0
   * Add record handling
   * Improve stability in mysql-otp driver
