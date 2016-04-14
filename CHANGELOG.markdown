@@ -1,7 +1,8 @@
-## v0.2.1
+## v0.3.0
   * Normalize return values for date, time, timestamp, and decimal types.
   * Fix `db:save` to properly decompose tables of the `database.tablename`
     format.
+  * Better normalization of `true`, `false` and NULLs to `undefined`
   * Add more tests
 
 ## v0.2.0

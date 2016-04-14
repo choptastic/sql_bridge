@@ -468,8 +468,8 @@ There are a number of quirks to get comfortable with when using sql_bridge:
    
 ## TODO
 
-### v0.2.0 
   * Maybe Experiment with [record-based querys](https://github.com/choptastic/sql_bridge/issues/1)
+  * Add SQLLite Support
 
 ## About
 
