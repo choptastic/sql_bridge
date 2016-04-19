@@ -360,18 +360,57 @@ they only return a single row. They all start with `fr` for "first record"
 
   * `db:qu` or `db:update`: Run the specified query and returns the number of affected rows.
 
-### Update or Delete from a Proplist
+### Update or Delete from a Proplist, Map, or Record
 
-  * `db:pl(Table, Keyfield, Proplist)`: Run an update or insert query on the
-    Table provided with the specified Proplist as the row data. If the value in
-    `Proplist` associated with the Key `Keyfield` is a zero, or is undefined, then
-    an insert query is performed. Otherwise, an update query is performed.
-    Regardless of insert or update method, the return value is the value of the
-    `Keyfield` - if insert, then it returns the new `insert_id`, and if update, the
-    value associated with the `Keyfield` from `Proplist`.
 
-  * `db:pl(Table, Proplist)`: Like `db:pl(Table, Keyfield, Proplist)` except
+  * `db:save(Table, Keyfield, Data)`: Run an update or insert query on the
+    Table provided with the specified Data as the row data. `Data` can be
+	either a proplist, a map, or a record (See *Workering with Records* below).
+    If the value in `Data` associated with the Key `Keyfield` is a
+    zero, or is undefined, then an insert query is performed. Otherwise, an update
+    query is performed.  Regardless of insert or update method, the return value is
+    the value of the `Keyfield` - if insert, then it returns the new `insert_id`,
+	and if update, the value associated with the `Keyfield` from `Data`.
+
+  * `db:save(Table, Data)`: Like `db:save(Table, Keyfield, Data)` except
     `Keyfield` is deduced with `list_to_atom(atom_to_list(Table) ++ "id")`
+
+#### Working with Records
+
+SQL_Bridge can work with records, however, since records are done at compile time, there are some additional steps that must be performed by you in order to accomplish this.  The simplest is to use the `save_record()` functions:
+
+  * `db:save_record(Table, KeyField, Record, FieldList)`: In order to call this effectively, you must pass the return value of the built-in compile function `record_info(fields, RECORDNAME)` as the argument for `FieldList`. For example, if you have a record called `#foo` that is saved into the table `foo_tbl` you could save it like this:  `db:save_record(foo_tbl, fooid, FooRec, record_info(fields, foo))`
+
+  * `db:save_record(Table, Record, FieldList`: Like `db:save/2`, this will automatically determine the KeyField as `list_to_atom(atom_to_list(Table) ++ "id")`.
+
+#### Using a Record Handler
+
+SQL_Bridge also has an option to intelligently convert records into a format SQL_Bridge can work with (namely, proplists and maps). You can do this by use a `record_handler` configuration option.  If the `record_handler` configuration option is specified in the sql_bridge.config file, it will call that specified function passing the record as an option.
+
+To use this, the value of `record_handler` must be a 2-tuple of the format `{Module, Function}`, where `Module:Function` is a function of arity 1 and returns a proplist or map.
+
+The simplest example would be to make a module in your app like:
+
+```erlang
+-module(my_record_handler).
+-export([handle/1]).
+
+handle(Foo = #foo{}) ->
+	sql_bridge_utils:record_to_proplist(Foo, record_info(fields, foo));
+handle(Bar = #bar{}) ->
+	sql_bridge_utils:record_to_proplists(Bar, record_info(fields, bar)).
+```
+
+Then, in your config, set the `record_handler` value as follows:
+
+```erlang
+[{sql_bridge, [
+	...
+	{record_handler, {my_record_handler, handle}}
+]}].
+```
+
+Once this is done, you can pass a record as the `Data` argument in `db:save/2-3`
 
 ### Delete
 
@@ -387,7 +426,6 @@ SQL_Bridge supports transactions through two mechanisms:
 	 a transaction. Note, if you run something like `db:q("BEGIN")`, SQL_Bridge
     is not intelligent enough to determine that you're in a transaction. Please use
     `db:start_trans()`.
-
   2. `db:trans(Fun)` - Mnesia-style transactions where the contents of the
 	 function are run within a transaction.  Note that `Fun` is of arity 0
     (that is, no arguments). If the function completes successfully, the queries
@@ -416,11 +454,22 @@ SQL_Bridge supports transactions through two mechanisms:
     offset calculation for you and return a limit clause that can be inserted into
     the query.
 
+## Some Quirks
+
+There are a number of quirks to get comfortable with when using sql_bridge:
+
+  * Dates, times, and timestamps are returned as a string (or binary), like
+	"2016-12-31", "23:15:46", or "2016-12-31 23:15:46". This is largely for
+    backwards compatibility with the original implementation which returned
+    returned dates and times as strings, and since so much of my code depends on
+    this, it's just like it.
+  * Numeric and Decimal types are returned as floats or integers. Again, this
+    is because of some code I have that depends on it.
    
 ## TODO
 
-### v0.2.0 
   * Maybe Experiment with [record-based querys](https://github.com/choptastic/sql_bridge/issues/1)
+  * Add SQLLite Support
 
 ## About
 

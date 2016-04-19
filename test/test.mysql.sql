@@ -11,3 +11,11 @@ create table fruit (
 	picture blob,
 	some_float float
 ) character set utf8 engine=innodb;
+
+create table other (
+	otherid int auto_increment primary key,
+	my_time time,
+	my_date date,
+	my_decimal decimal(6,2),
+	my_datetime datetime
+);

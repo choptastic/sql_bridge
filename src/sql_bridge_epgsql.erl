@@ -78,8 +78,9 @@ query_catched(Type, DB, Q, ParamList) ->
 	Res = sql_bridge_utils:with_poolboy_pool(DB, ToRun),
 	{ok, format_result(Type, Res)}.
 	
-format_insert_id({ok, _Columns, Rows}) ->
-	case format_lists(Rows) of
+format_insert_id({ok, Columns, Rows}) ->
+    ColTypes = columns_to_coltypes(Columns),
+	case format_lists(ColTypes, Rows) of
 		[[Insertid]] -> Insertid;
 		_ -> undefined
 	end.
@@ -97,81 +98,92 @@ format_result(_Type, {ok, Count}) ->
 format_result(insert, {ok, _Count, _Columns, Rows}) ->
 	element(1,hd(Rows));
 format_result(Type, {ok, _Count, Columns, Rows}) ->
-	format_result(Type, {ok, Columns, Rows});
-format_result(tuple, {ok, _Columns, Rows}) ->
-	format_tuples(Rows);
-format_result(list, {ok, _Columns, Rows}) ->
-	format_lists(Rows);
-format_result(proplist, {ok, Columns, Rows}) ->
+    format_result(Type, {ok, Columns, Rows});
+format_result(Type, {ok, Columns, Rows}) ->
+    ColTypes = columns_to_coltypes(Columns),
+    format_result_inner(Type, {ok, ColTypes, Rows}).
+
+format_result_inner(tuple, {ok, Columns, Rows}) ->
+	format_tuples(Columns, Rows);
+format_result_inner(list, {ok, Columns, Rows}) ->
+	format_lists(Columns, Rows);
+format_result_inner(proplist, {ok, Columns, Rows}) ->
 	format_proplists(Columns, Rows);
-format_result(dict, {ok, Columns, Rows}) ->
+format_result_inner(dict, {ok, Columns, Rows}) ->
 	format_dicts(Columns, Rows);
-format_result(map, {ok, Columns, Rows}) ->
+format_result_inner(map, {ok, Columns, Rows}) ->
 	format_maps(Columns, Rows).
 
-format_tuples(Rows) ->
-	case sql_bridge_utils:stringify_binaries() of
-		true ->
-			[list_to_tuple(format_list(Row)) || Row <- Rows];
-		false ->
-			Rows
-	end.
+columns_to_coltypes(Columns) ->
+    [{list_to_atom(binary_to_list(Col)), Type} || {column, Col, Type, _, _, _} <- Columns].
 
-format_lists(Rows) ->
-	case sql_bridge_utils:stringify_binaries() of
-		true ->
-			[format_list(Row) || Row <- Rows];
-		false ->
-			[tuple_to_list(Row) || Row <- Rows]
-	end.
+normalize_value(numeric, B) when is_binary(B) ->
+    normalize_value(numeric, binary_to_list(B));
+normalize_value(numeric, V) when is_list(V) ->
+    try list_to_float(V)
+    catch _:_ ->
+        try list_to_integer(V)
+        catch _:_ -> V
+        end
+    end;
+normalize_value(_Type, V) when is_tuple(V) ->
+    sql_bridge_utils:format_datetime(V);
+normalize_value(_Type, V) ->
+    sql_bridge_stringify:maybe_string(V).
 
-format_list(Row) when is_tuple(Row) ->
-	Row2 = tuple_to_list(Row),
-	[sql_bridge_stringify:maybe_string(V) || V <- Row2].
+format_tuples(Columns, Rows) ->
+    [format_tuple(Columns, Row) || Row <- Rows].
+
+format_tuple(Columns, Row) ->
+    list_to_tuple(format_list(Columns, Row)).
+
+format_lists(Columns, Rows) ->
+    [format_list(Columns, Row) || Row <- Rows].
+
+format_list(Columns, Row) when is_tuple(Row) ->
+	format_list(Columns, tuple_to_list(Row));
+format_list(Columns, Row) when is_list(Row) ->
+    make_list(Columns, Row).
+
+make_list(Cols, Vals) ->
+    ColVals = lists:zip(Cols, Vals),
+	[normalize_value(Type, Val) || {{_Col, Type}, Val} <- ColVals].
 
 format_proplists(Columns, Rows) ->
-	ColNames = extract_colnames(Columns),
-	[make_proplist(ColNames, Row) || Row <- Rows].
+	[make_proplist(Columns, Row) || Row <- Rows].
 
 format_dicts(Columns, Rows) ->
-	ColNames = extract_colnames(Columns),
-	[make_dict(ColNames, Row) || Row <- Rows].
+	[make_dict(Columns, Row) || Row <- Rows].
 
 make_dict(Cols, Row) when is_tuple(Row) ->
 	make_dict(Cols, tuple_to_list(Row), dict:new()).
 
 make_dict([], [], Dict) ->
 	Dict;
-make_dict([Col|Cols], [Val|Vals], Dict) ->
-	Val2 = sql_bridge_stringify:maybe_string(Val),
+make_dict([{Col, Type}|Cols], [Val|Vals], Dict) ->
+	Val2 = normalize_value(Type, Val),
 	NewDict = dict:store(Col, Val2, Dict),
 	make_dict(Cols, Vals, NewDict).
 
-	
-extract_colnames(Columns) ->
-	[list_to_atom(binary_to_list(CN)) || {column, CN, _, _, _, _} <- Columns].
-
-
 make_proplist(Columns, Row) when is_tuple(Row) ->
 	make_proplist(Columns, tuple_to_list(Row));
-make_proplist([Col|Cols], [Val|Vals]) ->
-	Val2 = sql_bridge_stringify:maybe_string(Val),
+make_proplist([{Col, Type}|Cols], [Val|Vals]) ->
+	Val2 = normalize_value(Type, Val),
 	[{Col, Val2} | make_proplist(Cols, Vals)];
 make_proplist([], []) ->
 	[].
 
 -ifdef(has_maps).
 format_maps(Columns, Rows) ->
-	ColNames = extract_colnames(Columns),
-	[make_map(ColNames, Row) || Row <- Rows].
+	[make_map(Columns, Row) || Row <- Rows].
 
 make_map(Cols, Row) ->
 	make_map(Cols, tuple_to_list(Row), maps:new()).
 
 make_map([], [], Map) ->
 	Map;
-make_map([Col|Cols],[Val|Vals], Map) ->
-	Val2 = sql_bridge_stringify:maybe_string(Val),
+make_map([{Col, Type}|Cols],[Val|Vals], Map) ->
+	Val2 = normalize_value(Type, Val),
 	NewMap = maps:put(Col, Val2, Map),
 	make_map(Cols, Vals, NewMap).
 

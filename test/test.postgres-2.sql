@@ -14,3 +14,11 @@ create table fruit (
 	picture bytea,
 	some_float float
 );
+
+create table other (
+	otherid serial primary key,
+	my_time time,
+	my_date date,
+	my_decimal decimal(6,2),
+	my_datetime timestamp
+);

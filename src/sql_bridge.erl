@@ -128,15 +128,15 @@ connect(DB) when is_atom(DB) ->
     ok = ?ADAPTER:connect(DB, ?USER, ?PASS, ?HOST, ?PORT),
     DB.
 
--spec pl(Table :: table(), Data :: proplist_or_map()) -> insert_id() | affected_rows().
+-spec pl(Table :: table(), Data :: proplist_or_map()) -> insert_id().
 pl(Table, Data) ->
     save(Table, Data).
 
--spec pl(Table :: table(), KeyField :: field(), Data :: proplist_or_map()) -> insert_id() | affected_rows().
+-spec pl(Table :: table(), KeyField :: field(), Data :: proplist_or_map()) -> insert_id().
 pl(Table, KeyField, Data) ->
     save(Table, KeyField, Data).
 
--spec save(Table :: table(), Data :: proplist_or_map()) -> insert_id() | affected_rows().
+-spec save(Table :: table(), Data :: proplist_or_map()) -> insert_id().
 save(Table, Data0) ->
     Data = ensure_proplist(Data0),
     save_(Table, Data).
@@ -145,7 +145,17 @@ save(Table, Data0) ->
 save(Table, KeyField, Data0) ->
     Data = ensure_proplist(Data0),
     save_(Table, KeyField, Data).
-    
+
+-spec save_record(Table :: table(), Record :: tuple(), FieldMap :: [atom()]) -> insert_id().
+save_record(Table, Record, FieldMap) ->
+    PL = sql_bridge_utils:record_to_proplist(Record, FieldMap),
+    save(Table, PL).
+
+-spec save_record(Table :: table(), KeyField :: field(), Record :: tuple(), FieldMap :: [atom()]) -> insert_id().
+save_record(Table, KeyField, Record, FieldMap) ->
+    PL = sql_bridge_utils:record_to_proplist(Record, FieldMap),
+    save(Table, KeyField, PL).
+
 save_(Table,PropList) when is_atom(Table) ->
     save_(atom_to_list(Table),PropList);
 save_(Table,PropList) when is_list(Table) ->
@@ -162,6 +172,7 @@ save_(Table,KeyField,PropList) when is_list(Table) ->
         Zero when Zero == 0;
                   Zero == "0";
                   Zero == undefined;
+                  Zero == null;
                   Zero == "";
                   Zero == <<>> -> 
             pli(Table,lists:keydelete(KeyField,1,PropList));
@@ -171,11 +182,15 @@ save_(Table,KeyField,PropList) when is_list(Table) ->
 
 
 -ifdef(has_maps).
+ensure_proplist(Record) when is_atom(element(1, Record)) ->
+    ensure_proplist(sql_bridge_utils:convert_record(Record));
 ensure_proplist(Map) when is_map(Map) ->
     maps:to_list(Map);
 ensure_proplist(PL) when is_list(PL) ->
     PL.
 -else.
+ensure_proplist(Record) when is_atom(element(1, Record)) ->
+    ensure_proplist(sql_bridge_utils:convert_record(Record));
 ensure_proplist(PL) when is_list(PL) ->
     PL.
 -endif.
@@ -338,7 +353,13 @@ db_q(Type, Db, Q, ParamList, RemainingAttempts) ->
             Response;
         {error, no_pool} ->
             connect(Db),
-            db_q(Type, Db, Q, ParamList, RemainingAttempts-1)
+            db_q(Type, Db, Q, ParamList, RemainingAttempts-1);
+        {error, disconnected} ->
+            error_logger:warning_msg("WARN: Disconnected worker in pool: ~p~n",[Db]),
+            db_q(Type, Db, Q, ParamList, RemainingAttempts-1);
+        {error, Other} ->
+            error_logger:error_msg("Error in SQL Statement or Adapter:~nDB: ~p~nSQL: ~p~nParams: ~p~nError Message: ~p",[Db, Q, ParamList, Other]),
+            exit(unknown_error)
     end.
 
 -spec qi(Q :: sql()) -> insert_id().
@@ -450,14 +471,22 @@ ffl(Q) ->
 %% deprecate this. Use "fields"
 table_fields(Table) when is_atom(Table) ->
     table_fields(atom_to_list(Table));
-table_fields(Table) ->
-    DB = atom_to_list(db()),
+table_fields(Table0) ->
+    {DB, Table} = table_and_db(Table0),
     [T1, T2] = sql_bridge_utils:create_placeholders(2),
     DBCol = ?ADAPTER:schema_db_column(),
     SQL = [<<"select column_name
              from information_schema.columns
              where ">>,DBCol,<<"=">>,T1,<<" and table_name=">>,T2],
     [sql_bridge_utils:to_atom(F) || F <- ffl(SQL, [DB, Table])].
+
+table_and_db(Table) ->
+    case string:tokens(Table, ".") of
+        [DB, TableOnly] ->
+            {DB, TableOnly};
+        [TableOnly] ->
+            {db(), TableOnly}
+    end.
 
 -spec fields(Table :: table()) -> [atom()].
 fields(Table) ->
@@ -537,6 +566,12 @@ delete(Table,KeyField,ID) ->
 
 sanitize(V) when is_list(V) ->
     sanitize(unicode:characters_to_binary(V));
+sanitize(true) ->
+    true;
+sanitize(false) ->
+    false;
+sanitize(undefined) ->
+    undefined;
 sanitize(A) when is_atom(A) ->
     sanitize(atom_to_list(A));
 sanitize(V) ->
