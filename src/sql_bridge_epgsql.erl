@@ -184,7 +184,7 @@ schema_db_column() ->
 	"table_catalog".
 
 encode(A) when is_atom(A) ->
-	encode(A);
+	encode(atom_to_list(A));
 encode(I) when is_integer(I) ->
 	list_to_binary(integer_to_list(I));
 encode(F) when is_float(F) ->
