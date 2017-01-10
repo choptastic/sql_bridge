@@ -76,6 +76,12 @@ query_catched(Type, DB, Q, ParamList) ->
 	{Q2, ParamList2} = maybe_replace_tokens(Q, ParamList),
 	ToRun = fun(Worker) ->
 		Res = mysql_query(Worker, Q2, ParamList2),
+        case Res of
+            {error, Reason} ->
+                error_logger:warning_msg("Error in Query.~nError: ~p~nQuery: ~p",[Reason, Q]);
+            _ ->
+                ok
+        end,
 		case Type of
 			insert -> mysql:insert_id(Worker);
 			update -> mysql:affected_rows(Worker);
@@ -84,7 +90,9 @@ query_catched(Type, DB, Q, ParamList) ->
 	end,
 	case sql_bridge_utils:with_poolboy_pool(DB, ToRun) of
 		{error, Reason} -> {error, Reason};
-		Result -> {ok, format_result(Type, Result)}
+		Result ->
+            error_logger:info_msg("~p ->: ~p",[Q2, Result]),
+            {ok, format_result(Type, Result)}
 	end.
 	
 mysql_query(Worker, Q, []) ->
