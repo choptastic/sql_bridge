@@ -68,7 +68,7 @@ query(Type, DB, Q, ParamList) ->
         exit:{{{case_clause,{error,closed}}, _}, _} ->
             {error, disconnected};
         E:T ->
-            error_logger:info_msg("Unhandled Error: ~p:~p", [E,T]),
+            error_logger:error_msg("Unhandled Error: ~p:~p", [E,T]),
             throw(unhandled_error)
 	end.
 
@@ -91,7 +91,6 @@ query_catched(Type, DB, Q, ParamList) ->
 	case sql_bridge_utils:with_poolboy_pool(DB, ToRun) of
 		{error, Reason} -> {error, Reason};
 		Result ->
-            error_logger:info_msg("~p ->: ~p",[Q2, Result]),
             {ok, format_result(Type, Result)}
 	end.
 	
