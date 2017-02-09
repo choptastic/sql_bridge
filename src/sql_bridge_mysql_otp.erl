@@ -33,16 +33,32 @@ connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
 	ok.
 
 start_transaction(DB) ->
-	sql_bridge_utils:checkout_pool(DB),
-	query(none, DB, "BEGIN", []).
+    case sql_bridge_utils:trans_depth(DB) of
+        0 ->
+            query(none, DB, "BEGIN", []);
+        _ ->
+            ok
+    end,
+    sql_bridge_utils:trans_deeper(DB),
+    sql_bridge_utils:checkout_pool(DB),
+    ok.
 
 rollback_transaction(DB) ->
+    sql_bridge_utils:trans_shallower(DB),
 	query(none, DB, "ROLLBACK", []),
 	sql_bridge_utils:checkin_pool(DB),
 	ok.
 
 commit_transaction(DB) ->
-	query(none, DB, "COMMIT", []),
+    case sql_bridge_utils:trans_depth(DB) of
+        1 ->
+            Res = query(none, DB, "COMMIT", []),
+            sql_bridge_utils:clear_trans_depth(DB),
+            Res;
+        X when X > 1 ->
+            sql_bridge_utils:trans_shallower(DB),
+            ok %% mysql does not supported nested transactions, so we'll only commit on the last depth
+    end,
 	sql_bridge_utils:checkin_pool(DB),
 	ok.
 
@@ -54,8 +70,10 @@ with_transaction(DB, Fun) ->
 			Res
 	catch
 		Error:Class ->
+            ErrMsg = [{Error, Class}, erlang:get_stacktrace()],
+            wf:warning("Errored Query: ~p",[ErrMsg]),
 			rollback_transaction(DB),
-			{error, [{Error, Class}, erlang:get_stacktrace()]}
+			{error, ErrMsg}
 	end.
 
 query(Type, DB, Q, ParamList) ->
