@@ -96,7 +96,7 @@ query_catched(Type, DB, Q, ParamList) ->
 		Res = mysql_query(Worker, Q2, ParamList2),
         case Res of
             {error, Reason} ->
-                error_logger:warning_msg("Error in Query.~nError: ~p~nQuery: ~p",[Reason, Q]);
+                error_logger:warning_msg("Error in Query.~nError: ~p~nQuery: ~s",[Reason, Q]);
             _ ->
                 ok
         end,
