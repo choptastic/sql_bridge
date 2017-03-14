@@ -71,7 +71,7 @@ with_transaction(DB, Fun) ->
 	catch
 		Error:Class ->
             ErrMsg = [{Error, Class}, erlang:get_stacktrace()],
-            wf:warning("Errored Query: ~p",[ErrMsg]),
+            error_logger:info_msg("Errored Query: ~p",[ErrMsg]),
 			rollback_transaction(DB),
 			{error, ErrMsg}
 	end.
