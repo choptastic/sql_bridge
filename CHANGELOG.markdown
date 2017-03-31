@@ -1,3 +1,10 @@
+## v0.3.1
+
+  * Handling nested transactions and nested checkouts (just for mysql-otp right now)
+  * Give a warning message if query breaks in mysql-otp. Previously just
+    returned `{error, Something}` but this generates an OTP warning as well.
+  * Fix atom encoding in epgsql
+
 ## v0.3.0
   * Normalize return values for date, time, timestamp, and decimal types.
   * Fix `db:save` to properly decompose tables of the `database.tablename`
