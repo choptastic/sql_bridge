@@ -76,14 +76,24 @@ query_catched(Type, DB, Q, ParamList) ->
 	end,
 
 	Res = sql_bridge_utils:with_poolboy_pool(DB, ToRun),
-	{ok, format_result(Type, Res)}.
+    case Res of
+        {error, Error} ->
+            error_logger:error_msg("Query Error~nDB: ~p~nQuery: ~s~nParams: ~p~nError: ~p~n",[DB, Q, ParamList, Error]),
+            erlang:exit(query_error);
+        _ ->
+            {ok, format_result(Type, Res)}
+    end.
 	
 format_insert_id({ok, Columns, Rows}) ->
     ColTypes = columns_to_coltypes(Columns),
 	case format_lists(ColTypes, Rows) of
 		[[Insertid]] -> Insertid;
 		_ -> undefined
-	end.
+	end;
+format_insert_id({error, {error, error, _, <<"lastval is not defined",_/binary>>, _}}) ->
+    undefined;
+format_insert_id({error, Error}) ->
+    {error, Error}.
 
 maybe_replace_tokens(Q, ParamList) ->
 	case sql_bridge_utils:replacement_token() of
