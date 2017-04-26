@@ -281,7 +281,6 @@ plq(Q,ParamList) ->
     db_q(proplist,Db,Q,ParamList).
 
 
-%% TODO: This relies on mysql's insert...set syntax, which isn't valid.
 -spec pli(Table :: table(), PropList :: proplist()) -> insert_id().
 %% @doc Inserts a proplist into the table
 pli(Table,PropList) when is_atom(Table) ->
