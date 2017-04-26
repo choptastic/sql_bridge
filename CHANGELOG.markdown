@@ -1,10 +1,12 @@
+<<<<<<< HEAD
 ## v0.4.0 (in progress)
   * **BACKWARDS INCOMPATIBLE CHANGE**: Renamed `update` and `insert` to `qupdate` and `qinsert`.
   * Created a new `update/[2,3]` and `insert/2` to which are friendly maps to
 	`plu` and `pli` respectively.
-  * Fix atom encoding in epgsql.
-  * Better error messages for mysql-otp
-  * Nested transactions working better
+  * Handling nested transactions and nested checkouts (just for mysql-otp right now)
+  * Give a warning message if query breaks in mysql-otp. Previously just
+    returned `{error, Something}` but this generates an OTP warning as well.
+  * Fix atom encoding in epgsql
 
 ## v0.3.0
   * Normalize return values for date, time, timestamp, and decimal types.

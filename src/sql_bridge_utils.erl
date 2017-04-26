@@ -19,6 +19,10 @@
     to_atom/1,
     checkout_pool/1,
     checkin_pool/1,
+    trans_depth/1,
+    trans_deeper/1,
+    trans_shallower/1,
+    clear_trans_depth/1,
     record_to_proplist/2,
     format_datetime/1
 ]).
@@ -74,22 +78,106 @@ with_poolboy_pool(DB, Fun) ->
             _Return = Fun(Worker)
     end.
 
+%% When checking out, we make sure to check if we already have one checked out,
+%% and if so, we "go deeper" instead of checking another connection out. The %%
+%% first time checking out a connection_pool brings us to a depth of 1. A depth of
+%% 0 means "not checked out" %% when checking in, we also make sure to check how
+%% deep we are, and if we reach a depth of 1, we're at the last depth, so we
+%% can clear the depth.
+
 checkout_pool(DB) ->
-    case erlang:get({sql_bridge_current_pool, DB}) of
-        undefined -> 
+    %% Are we checked out already? 0 = no, X >= 1 means yes.
+    case checkout_depth(DB) of
+        0 ->
+            %% Not checked out, so let's check out, and "go deeper" (bringing us to an initial depth of 1)
             Worker = poolboy:checkout(DB),
             erlang:put({sql_bridge_current_pool, DB}, {ok, Worker}),
+            checkout_deeper(DB),
             ok;
-        {ok, _Worker} ->
-            %% already checked out, do nothing
+        X when X >= 1 ->
+            %% already checked out, just go deeper
+            checkout_deeper(DB),
             ok
     end.
 
 checkin_pool(DB) ->
-    {ok, Worker} = erlang:get({sql_bridge_current_pool, DB}),
-    poolboy:checkin(DB, Worker),
-    erlang:put({sql_bridge_current_pool, DB}, undefined),
-    ok.
+    %% Are we checked out already?
+    case checkout_depth(DB) of
+        1 -> 
+            %% We're at a depth of 1 wihhc menas we're checked out, but this is
+            %% the last checkout, so we can safely check back in
+            {ok, Worker} = erlang:get({sql_bridge_current_pool, DB}),
+            poolboy:checkin(DB, Worker),
+            erlang:put({sql_bridge_current_pool, DB}, undefined),
+            clear_checkout_depth(DB),
+            ok;
+        X when X > 1 ->
+            %% Yep, we're checked out, and it's not the last depth, so let's just how shallower
+            checkout_shallower(DB),
+            ok;
+        X when X =< 0 ->
+            %% something went wrong. We should never be attempting to check in
+            %% at or less than 0. Throw an error
+            erlang:exit({invalid_depth_to_check_in, [{db, DB}, {depth, X}]})
+    end.
+
+
+checkout_depth(DB) ->
+    case erlang:get({checkout_depth, DB}) of
+        undefined -> 0;
+        X when is_integer(X) -> X
+    end.
+
+checkout_depth(DB, Val) ->
+    erlang:put({checkout_depth, DB}, Val).
+
+clear_checkout_depth(DB) ->
+    erlang:erase({checkout_depth, DB}).
+
+checkout_deeper(DB) ->
+    Depth = checkout_depth(DB),
+    NewDepth = Depth + 1,
+    checkout_depth(DB, NewDepth),
+    NewDepth.
+
+checkout_shallower(DB) ->
+    case checkout_depth(DB) of
+        0 ->
+            0;
+        Depth ->
+            NewDepth = Depth - 1,
+            checkout_depth(DB, NewDepth),
+            NewDepth
+    end.
+
+trans_depth(DB) ->
+    case erlang:get({trans_depth, DB}) of
+        undefined -> 0;
+        X when is_integer(X) -> X
+    end.
+
+trans_depth(DB, Val) ->
+    erlang:put({trans_depth, DB}, Val).
+
+clear_trans_depth(DB) ->
+    erlang:erase({trans_depth, DB}).
+
+trans_deeper(DB) ->
+    Depth = trans_depth(DB),
+    NewDepth = Depth + 1,
+    trans_depth(DB, NewDepth),
+    NewDepth.
+
+trans_shallower(DB) ->
+    case trans_depth(DB) of
+        0 ->
+            0;
+        Depth ->
+            NewDepth = Depth - 1,
+            trans_depth(DB, NewDepth),
+            NewDepth
+    end.
+    
 
 to_string(A) when is_atom(A) ->
     atom_to_list(A);
