@@ -31,9 +31,9 @@
 -type return_value() :: insert_id() | affected_rows()
                         | [list() | tuple() | t_dict() | proplist()].
 -ifdef(has_maps).
--type proplist_or_map() :: proplist() | map().
+-type proplist_or_map() :: tuple() | proplist() | map().
 -else.
--type proplist_or_map() :: proplist().
+-type proplist_or_map() :: tuple() | proplist().
 -endif.
 
 -export_type([
@@ -71,10 +71,13 @@ dicts(Q) ->         dq(Q).
 dicts(Q, P) ->      dq(Q, P).
 dict(Q) ->          dfr(Q).
 dict(Q, P) ->       dfr(Q, P).
-update(Q) ->        qu(Q).
-update(Q, P) ->     qu(Q, P).
-insert(Q) ->        qi(Q).
-insert(Q, P) ->     qi(Q, P).
+qupdate(Q) ->       qu(Q).
+qupdate(Q, P) ->    qu(Q, P).
+qinsert(Q) ->       qi(Q).
+qinsert(Q, P) ->    qi(Q, P).
+update(Table, Obj) -> plu(Table, Obj).
+update(Table, KeyField, Obj) -> plu(Table, KeyField, Obj).
+insert(Table, Obj) -> pli(Table, Obj).
 
 -spec lookup() -> db().
 % @doc Checks the configuration for how we determine the database we're using
@@ -281,11 +284,12 @@ plq(Q,ParamList) ->
     db_q(proplist,Db,Q,ParamList).
 
 
--spec pli(Table :: table(), PropList :: proplist()) -> insert_id().
+-spec pli(Table :: table(), Data :: proplist_or_map()) -> insert_id().
 %% @doc Inserts a proplist into the table
 pli(Table,PropList) when is_atom(Table) ->
     pli(atom_to_list(Table),PropList);
-pli(Table,InitPropList) ->
+pli(Table,InitPropList0) ->
+    InitPropList = ensure_proplist(InitPropList0),
     PropList = filter_fields(Table,InitPropList),
     Fields0 = [atom_to_list(F) || {F,_} <- PropList],
     Fields = iolist_join(Fields0, ","),
@@ -295,11 +299,12 @@ pli(Table,InitPropList) ->
     SQL = ["insert into ",Table,"(",Fields,") values(",PlaceholderString,");"],
     qi(SQL, Values).
 
--spec plu(Table :: table(), PropList :: proplist()) -> affected_rows().
+-spec plu(Table :: table(), PropList :: proplist_or_map()) -> affected_rows().
 %% @doc Updates a row from the proplist based on the key `Table ++ "id"` in the Table
 plu(Table,PropList) when is_atom(Table) ->
     plu(atom_to_list(Table),PropList);
-plu(Table,PropList) ->
+plu(Table,PropList0) ->
+    PropList = ensure_proplist(PropList0),
     KeyField = list_to_atom(Table ++ "id"),
     plu(Table,KeyField,PropList).
 
