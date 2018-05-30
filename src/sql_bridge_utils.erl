@@ -24,6 +24,7 @@
     trans_shallower/1,
     clear_trans_depth/1,
     record_to_proplist/2,
+    proplist_to_record/3,
     format_datetime/1
 ]).
 
@@ -311,6 +312,12 @@ record_to_proplist(Record, FieldMap) ->
         Value = element(ElNum, Record),
         {Field, Value}
     end, NumberedFields).
+
+proplist_to_record(Proplist, Tag, FieldMap) ->
+    Vals = lists:map(fun(Field) ->
+        proplists:get_value(Field, Proplist, undefined)
+    end, FieldMap),
+    list_to_tuple([Tag | Vals]).
 
 format_datetime({{Y,M,D},{H,I,S}}) when is_float(S) ->
     format_datetime({{Y,M,D},{H,I,erlang:trunc(S)}});
