@@ -354,14 +354,13 @@ they only return a single row. They all start with `fr` for "first record"
 
 ### Insert
 
-  * `db:qi` or `db:insert` Runs the specified query and returns the `insert_id`
+  * `db:qi` or `db:qinsert` Runs the specified query and returns the `insert_id`
 
 ### Update
 
-  * `db:qu` or `db:update`: Run the specified query and returns the number of affected rows.
+  * `db:qu` or `db:qupdate`: Run the specified query and returns the number of affected rows.
 
 ### Update or Delete from a Proplist, Map, or Record
-
 
   * `db:save(Table, Keyfield, Data)`: Run an update or insert query on the
     Table provided with the specified Data as the row data. `Data` can be
@@ -374,6 +373,16 @@ they only return a single row. They all start with `fr` for "first record"
 
   * `db:save(Table, Data)`: Like `db:save(Table, Keyfield, Data)` except
     `Keyfield` is deduced with `list_to_atom(atom_to_list(Table) ++ "id")`
+
+  * `db:update(Table, KeyField, Data)`: Like `save/3` but will always use an
+    `update` even if the value for the keyfield is `0` or `undefined`.
+
+  * `db:update(Table, Data)`: Like `save/2`, but uses an `update` operation.
+
+  * `db:insert(Table, Data)`: Like `save/2` but uses an `insert` operation.
+	**Special Note::** This does not strip out any Keyfields, it inserts the data
+	exactly as it is, so if the key field has a value of `0`, that's the value that
+	will be inserted.
 
 #### Working with Records
 
