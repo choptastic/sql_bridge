@@ -291,7 +291,7 @@ pli(Table,PropList) when is_atom(Table) ->
 pli(Table,InitPropList0) ->
     InitPropList = ensure_proplist(InitPropList0),
     PropList = filter_fields(Table,InitPropList),
-    Fields0 = [atom_to_list(F) || {F,_} <- PropList],
+    Fields0 = [wrap_field(F) || {F,_} <- PropList],
     Fields = iolist_join(Fields0, ","),
     Values = [V || {_,V} <- PropList],
     Placeholders = sql_bridge_utils:create_placeholders(length(Values)),
@@ -315,7 +315,7 @@ plu(Table,KeyField,InitPropList) when is_atom(Table) ->
 plu(Table,KeyField,InitPropList) ->
     PropList = filter_fields(Table,InitPropList),
    
-    SetFields = [atom_to_list(F) || {F, _} <- PropList, F =/= KeyField],
+    SetFields = [wrap_field(F) || {F, _} <- PropList, F =/= KeyField],
     SetPlaceholders = sql_bridge_utils:create_placeholders(length(SetFields)),
     Sets = [ [F,"=",PH] || {F, PH} <- lists:zip(SetFields, SetPlaceholders) ],
     Set = iolist_join(Sets,","),
@@ -666,3 +666,7 @@ offset(PerPage, Page) when Page > 0 ->
 %% Exported as a convenience
 q_prep(Q, ParamList) ->
     sql_bridge_utils:q_prep(Q, ParamList).
+
+
+wrap_field(V) ->
+    ?ADAPTER:wrap_field(V).
