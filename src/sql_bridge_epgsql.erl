@@ -10,11 +10,16 @@
 		 start_transaction/1,
 		 commit_transaction/1,
 		 rollback_transaction/1,
-		 with_transaction/2]).
+		 with_transaction/2,
+         wrap_field/1
+]).
 
 start() ->
 	application:start(poolboy),
 	ok.
+
+wrap_field(V) ->
+    sql_bridge_utils:to_string(V).
 
 connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
 	WorkerArgs = [

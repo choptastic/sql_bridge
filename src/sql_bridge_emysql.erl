@@ -9,7 +9,8 @@
 	query/3,
 	query/4,
 	schema_db_column/0,
-	encode/1
+	encode/1,
+    wrap_field/1
 ]).
 
 -type sql_result() :: any().
@@ -36,6 +37,9 @@ query(Type,Db,Q, ParamList) ->
         exit:pool_not_found ->
 			{error, no_pool}
     end.
+
+wrap_field(V) ->
+    "`" ++ sql_bridge_utils:to_string(V) ++ "`".
 
 query_catched(Type, Db, Q, ParamList) ->
 	{Q2, ParamList2} = maybe_replace_tokens(Q, ParamList),	

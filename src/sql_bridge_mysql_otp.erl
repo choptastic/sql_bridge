@@ -10,7 +10,8 @@
 		 start_transaction/1,
 		 commit_transaction/1,
 		 rollback_transaction/1,
-		 with_transaction/2
+		 with_transaction/2,
+         wrap_field/1
 		]).
 
 %% 
@@ -31,6 +32,9 @@ connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
 	],
 	sql_bridge_utils:start_poolboy_pool(DB, WorkerArgs, mysql),
 	ok.
+
+wrap_field(V) ->
+    "`" ++ sql_bridge_utils:to_string(V) ++ "`".
 
 start_transaction(DB) ->
     case sql_bridge_utils:trans_depth(DB) of
