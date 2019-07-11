@@ -1,5 +1,6 @@
 %% vim: ts=4 sw=4 et
 -module(sql_bridge).
+-compile(nowarn_export_all).
 -compile(export_all).
 -include("compat.hrl").
 
@@ -104,6 +105,26 @@ db() ->
         DB ->
             DB
     end.
+
+enable_logging() ->
+    error_logger:info_msg("SQL Bridge Started Logging"),
+    application:set_env(sql_bridge, logging, true).
+
+disable_logging() ->
+    application:set_env(sql_bridge, logging, false),
+    error_logger:info_msg("SQL Bridge Stopped Logging").
+
+log(Time, DB, SQL, Params) ->
+    Pid = self(),
+    Output = io_lib:format("===== ~p (~p): ~p us: ~ts || Params: ~p~n",[Pid, DB, Time, SQL, Params]),
+    file:write_file("sql_bridge.log", Output, [append, delayed_write]).
+
+log_for_time(Secs) ->
+    spawn(fun() ->
+        enable_logging(),
+        timer:sleep(Secs*1000),
+        disable_logging()
+    end).
 
 -spec db(db()) -> db().
 % @doc Stores the database name in the process dictionary
@@ -352,19 +373,26 @@ db_q(_Type, Db, _Q, _ParamList, _RemainingAttempts=0) ->
     error_logger:error_msg("Unable to connect to pool '~p' after ~p attempts", [Db, ?CONNECTION_ATTEMPTS]),
     throw({error, unable_to_connect_to_pool, Db});
 db_q(Type, Db, Q, ParamList, RemainingAttempts) ->
-    case ?ADAPTER:query(Type, Db, Q, ParamList) of
-        {ok, Response} ->
-            Response;
-        {error, no_pool} ->
-            connect(Db),
-            db_q(Type, Db, Q, ParamList, RemainingAttempts-1);
-        {error, disconnected} ->
-            error_logger:warning_msg("WARN: Disconnected worker in pool: ~p~n",[Db]),
-            db_q(Type, Db, Q, ParamList, RemainingAttempts-1);
-        {error, Other} ->
-            error_logger:error_msg("Error in SQL Statement or Adapter:~nDB: ~p~nSQL: ~p~nParams: ~p~nError Message: ~p",[Db, Q, ParamList, Other]),
-            exit(unknown_error)
-    end.
+    {Time, Return} = timer:tc(fun() ->
+        case ?ADAPTER:query(Type, Db, Q, ParamList) of
+            {ok, Response} ->
+                Response;
+            {error, no_pool} ->
+                connect(Db),
+                db_q(Type, Db, Q, ParamList, RemainingAttempts-1);
+            {error, disconnected} ->
+                error_logger:warning_msg("WARN: Disconnected worker in pool: ~p~n",[Db]),
+                db_q(Type, Db, Q, ParamList, RemainingAttempts-1);
+            {error, Other} ->
+                error_logger:error_msg("Error in SQL Statement or Adapter:~nDB: ~p~nSQL: ~p~nParams: ~p~nError Message: ~p",[Db, Q, ParamList, Other]),
+                exit(unknown_error)
+        end
+    end),
+    case application:get_env(sql_bridge, logging, false) of
+        false -> ok;
+        true -> log(Time, Db, Q, ParamList)
+    end,
+    Return.
 
 -spec qi(Q :: sql()) -> insert_id().
 %% @doc A special Query function just for inserting.
