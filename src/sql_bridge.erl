@@ -630,14 +630,17 @@ remove_wrapping_quotes(Str) ->
 encode64("") -> "";
 encode64(undefined) -> "";
 encode64(Data) ->
-    base64:encode_to_string(term_to_binary(Data)).
+    binary_to_list(b64fast:encode64(term_to_binary(Data))).
+    %base64:encode_to_string(term_to_binary(Data)).
 
 -spec decode64(T :: any()) -> string().
 %% @doc Decodes a base64 string into the relevant erlang term.
 decode64("") -> "";
 decode64(undefined) -> "";
-decode64(Data) ->
-    binary_to_term(base64:decode(Data)).
+decode64(Data) when is_list(Data) ->
+    decode64(list_to_binary(Data));
+decode64(Data) when is_binary(Data) ->
+    binary_to_term(b64fast:decode64(Data)).
 
 -spec encode_list(List :: [value()]) -> iolist().
 %% @doc Takes a list of items and encodes them for SQL then returns a
