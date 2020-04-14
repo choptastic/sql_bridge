@@ -3,16 +3,16 @@
 all: get-deps compile
 
 get-deps:
-	./rebar get-deps
+	./rebar3 get-deps
 
 compile:
-	./rebar compile
+	./rebar3 compile
 
 run:
-	erl -pa ebin/ -pa deps/*/ebin/ -eval "sql_bridge:start()" -config sample.config
+	./rebar3 shell --config sample.config
 
 test:
-	./rebar skip_deps=true eunit
+	./rebar3 skip_deps=true eunit
 
 DEPS_PLT=$(CURDIR)/.deps_plt
 DEPS=erts kernel stdlib crypto sasl
