@@ -73,8 +73,8 @@ with_transaction(DB, Fun) ->
 			commit_transaction(DB),
 			Res
 	catch
-		Error:Class ->
-            ErrMsg = [{Error, Class}, erlang:get_stacktrace()],
+		Error:Class:ST ->
+            ErrMsg = [{Error, Class}, ST],
             error_logger:info_msg("Errored Query: ~p",[ErrMsg]),
 			rollback_transaction(DB),
 			{error, ErrMsg}
