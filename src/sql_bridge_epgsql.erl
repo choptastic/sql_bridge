@@ -54,9 +54,9 @@ with_transaction(DB, Fun) ->
 			commit_transaction(DB),
 			Res
 	catch
-		Error:Class ->
+		Error:Class:ST ->
 			rollback_transaction(DB),
-			{error, [{Error, Class}, erlang:get_stacktrace()]}
+			{error, [{Error, Class}, ST]}
 	end.
 
 query(Type, DB, Q, ParamList) ->
