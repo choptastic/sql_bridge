@@ -74,8 +74,6 @@ As the final important config variable, `adapter` determines which database driv
     Erlang PostgreSQL driver (also uses poolboy).
   + `sql_bridge_mysql_otp` - [mysql-otp](http://github.com/mysql-otp/mysql-otp) -
      A New MySQL driver (also uses poolboy).
-  + `sql_bridge_emysql` - [emysql](http://github.com/eonblast/emysql) - The
-    (mostly abandoned) Emysql driver.
 
 ### Sample Config
 
@@ -93,7 +91,6 @@ but here are the configuration settings currently available:
         %% There are three adapters that can be used:
         %%  + sql_bridge_epgsql: PostgreSQL adapter using epgsql
         %%  + sql_bridge_mysql_otp: MySQL adapter using mysql-otp
-        %%  + sql_bridge_emysql: MySQL adapter using the (mostly abandoned) Emysql driver.
         {adapter, sql_bridge_mysql_otp},
 
         %% connection parameters (self explanitory, I hope)

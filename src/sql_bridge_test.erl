@@ -42,13 +42,6 @@ epgsql_test_() ->
      fun trans_tests/1
     }.
 
-emysql_test_() ->
-    {setup,
-     fun() -> gen_setup(sql_bridge_emysql, mysql, 3306) end,
-     fun epgsql_cleanup/1,
-     fun main_tests/1
-    }.
-
 
 gen_setup(Adapter, ReplacementType, Port) ->
     error_logger:info_msg("Starting Adapter: ~p~n",[Adapter]),
@@ -71,11 +64,6 @@ epgsql_cleanup(_) ->
 
 mysql_otp_cleanup(_) ->
     application:stop(mysql),
-    application:stop(sql_bridge),
-    ok.
-
-emysql_cleanup(_) ->
-    application:stop(emysql),
     application:stop(sql_bridge),
     ok.
 

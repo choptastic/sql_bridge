@@ -1,3 +1,7 @@
+### 0.5.0
+  * **BACKWARDS INCOMPATIBLE CHANGE**: Removed support for emysql
+  * Configured with rebar3
+
 ## v0.4.0
   * **BACKWARDS INCOMPATIBLE CHANGE**: Renamed `update` and `insert` to `qupdate` and `qinsert`.
   * Created a new `update/[2,3]` and `insert/2` to which are friendly maps to

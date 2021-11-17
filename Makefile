@@ -12,7 +12,7 @@ run:
 	./rebar3 shell --config sample.config
 
 test:
-	./rebar3 skip_deps=true eunit
+	./rebar3 eunit
 
 DEPS_PLT=$(CURDIR)/.deps_plt
 DEPS=erts kernel stdlib crypto sasl
