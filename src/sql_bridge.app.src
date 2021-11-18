@@ -3,6 +3,8 @@
     [
         {description, "A convenience layer for SQL databases"},
         {vsn, "0.5.0"},
+        {licenses, ["MIT"]},
+        {links, [{"Github", "https://github.com/choptastic/sql_bridge"}]},
         {registered, []},
         {applications, [
                 kernel,

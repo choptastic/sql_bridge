@@ -17,6 +17,9 @@ test:
 publish:
 	./rebar3 hex publish
 
+publish:
+	./rebar3 hex publish
+
 DEPS_PLT=$(CURDIR)/.deps_plt
 DEPS=erts kernel stdlib crypto sasl
 # removed 'sasl' in attempt to minimize memory usage for Travis
