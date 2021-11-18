@@ -467,8 +467,8 @@ There are a number of quirks to get comfortable with when using sql_bridge:
   * Dates, times, and timestamps are returned as a string (or binary), like
 	"2016-12-31", "23:15:46", or "2016-12-31 23:15:46". This is largely for
     backwards compatibility with the original implementation which returned
-    returned dates and times as strings, and since so much of my code depends on
-    this, it's just like it.
+    returned dates and times as strings, and since so much of my code depends
+    on this, it's just how it is.
   * Numeric and Decimal types are returned as floats or integers. Again, this
     is because of some code I have that depends on it.
    
@@ -479,7 +479,7 @@ There are a number of quirks to get comfortable with when using sql_bridge:
 
 ## About
 
-Copyright (c) 2013-2016 [Jesse Gumm](http://sigma-star.com/page/jesse)
+Copyright (c) 2013-2021 [Jesse Gumm](http://jessegumm.com)
 ([@jessegumm](http://twitter.com/jessegumm))
 
 [MIT License](https://github.com/choptastic/sql_bridge/blob/master/LICENSE)
