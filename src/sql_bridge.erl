@@ -135,7 +135,7 @@ db(DB) ->
 -spec start() -> ok.
 % @doc starts the actual database driver, if necessary
 start() ->
-    application:start(sql_bridge),
+    {ok, _} = application:ensure_all_started(sql_bridge),
     ok = sql_bridge_alias:build_stringify(?STRINGIFY), 
     ok = sql_bridge_alias:build(?ALIAS),
     ok = ?ADAPTER:start(),
