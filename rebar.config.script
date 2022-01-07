@@ -9,10 +9,10 @@ case erlang:function_exported(rebar3, main, 1) of
         %% Rebuild deps, possibly including those that have been moved to
         %% profiles
         [{deps, [
-            {b64fast, {git, "git://github.com/zuckschwerdt/b64fast", {branch, master}}},
-            {erlias,  {git, "git://github.com/choptastic/erlias", {branch, master}}},
-            {poolboy, {git, "git://github.com/devinus/poolboy", {branch, master}}},
-            {epgsql,  {git, "git://github.com/choptastic/epgsql", {branch, master}}},
-            {mysql,   {git, "git://github.com/choptastic/mysql-otp", {branch, master}}}
+            {b64fast, {git, "https://github.com/zuckschwerdt/b64fast", {branch, master}}},
+            {erlias,  {git, "https://github.com/choptastic/erlias", {branch, master}}},
+            {poolboy, {git, "https://github.com/devinus/poolboy", {branch, master}}},
+            {epgsql,  {git, "https://github.com/choptastic/epgsql", {branch, master}}},
+            {mysql,   {git, "https://github.com/choptastic/mysql-otp", {branch, master}}}
         ]} | lists:keydelete(deps, 1, CONFIG)]
 end.
