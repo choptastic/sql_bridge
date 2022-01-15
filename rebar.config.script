@@ -10,7 +10,7 @@ case erlang:function_exported(rebar3, main, 1) of
         %% profiles
         [{deps, [
             {b64fast, {git, "https://github.com/zuckschwerdt/b64fast", {branch, master}}},
-            {erlias,  {git, "https//github.com/choptastic/erlias", {branch, master}}},
+            {erlias,  {git, "https://github.com/choptastic/erlias", {branch, master}}},
             {poolboy, {git, "https://github.com/devinus/poolboy", {branch, master}}},
             {epgsql,  {git, "https://github.com/choptastic/epgsql", {branch, master}}},
             {mysql,   {git, "https://github.com/choptastic/mysql-otp", {branch, master}}}
