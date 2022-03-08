@@ -1,10 +1,13 @@
-### 0.5.0
+## 0.5.1
+  * Added `field_exists/2` to check for the existance of a field in a table
+
+## 0.5.0
   * **BACKWARDS INCOMPATIBLE CHANGE**: Removed support for emysql
   * Configured with rebar3
 
 ## v0.4.0
   * **BACKWARDS INCOMPATIBLE CHANGE**: Renamed `update` and `insert` to `qupdate` and `qinsert`.
-  * Created a new `update/[2,3]` and `insert/2` which are friendly maps to `plu` and `pli` respectively.
+  * Created `update/[2,3]` and `insert/2` which are friendly maps to `plu` and `pli` respectively.
   * Handling nested transactions and nested checkouts (just for mysql-otp right now)
   * Give a warning message if query breaks in mysql-otp. Previously just
     returned `{error, Something}` but this generates an OTP warning as well.

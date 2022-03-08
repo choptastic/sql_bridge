@@ -347,6 +347,9 @@ they only return a single row. They all start with `fr` for "first record"
     [playerid, name, race, class, level, alive]
     ```
 
+  * `db:field_exists(Table, Field)` : Returns true if the specified `Table`
+    contains the field called `Field`
+
 #### Insert, Update, Delete Queries
 
 ### Insert

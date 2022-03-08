@@ -524,6 +524,15 @@ table_and_db(Table) ->
 fields(Table) ->
     table_fields(Table).
 
+field_exists(Table0, Field) ->
+    {DB, Table} = table_and_db(Table0),
+    [T1, T2, T3] = sql_bridge_utils:create_placeholders(3),
+    DBCol = ?ADAPTER:schema_db_column(),
+    SQL = [<<"select column_name
+             from information_schema.columns
+             where ">>,DBCol,<<"=">>,T1,<<" and table_name=">>,T2,<<" and column_name=">>,T3],
+    qexists(SQL, [DB, Table, Field]).
+
 -spec qexists(Q :: sql()) -> boolean().
 %% @doc Existance query, just returns true if the query Q returns anything
 %% other than an empty set.
