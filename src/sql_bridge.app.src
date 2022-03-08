@@ -7,10 +7,12 @@
         {links, [{"Github", "https://github.com/choptastic/sql_bridge"}]},
         {registered, []},
         {applications, [
-                kernel,
-                stdlib,
-                erlias
-            ]},
+            kernel,
+            stdlib
+        ]},
+        {loaded_applications, [
+            erlias
+        ]},
         {env, []},
         {mod, {sql_bridge_app, []}}
     ]
