@@ -59,7 +59,19 @@ start_poolboy_pool(Name, WorkerArgs, WorkerModule) ->
         {max_overflow, Overflow},
         {worker_module, WorkerModule}
     ],
-    ChildSpec = poolboy:child_spec({local, Name}, PoolArgs, WorkerArgs),
+    %ChildSpec = poolboy:child_spec({local, Name}, PoolArgs, WorkerArgs, map),
+    %Poolid = {local, Name},
+    
+    ChildSpec = #{
+        id => {local, Name},
+        start => {poolboy, start_link, [PoolArgs, WorkerArgs]},
+        restart => temporary,
+        shutdown => 5000,
+        type => worker,
+        modules => [poolboy]
+    },
+
+
     supervisor:start_child(sql_bridge_sup, ChildSpec).
 
 get_env(Var, Def) ->

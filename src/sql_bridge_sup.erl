@@ -7,4 +7,9 @@ start_link() ->
 
 init([]) ->
 	%% Starting simple, and we'll be dynamically adding pools
-	{ok, {{one_for_one, 10, 10}, []}}.
+    SupFlags = #{
+        strategy=>one_for_one,
+        intensity=>2000,
+        period=>1
+    },
+    {ok, {SupFlags, []}}.
