@@ -149,7 +149,13 @@ connect() ->
 -spec connect(db()) -> db().
 % @doc establishes a connection to the named database.
 connect(DB) when is_atom(DB) ->
-    ok = ?ADAPTER:connect(DB, ?USER, ?PASS, ?HOST, ?PORT),
+    Host = case ?HOST of
+        {Mod, Fun} ->
+            Mod:Fun();
+        X ->
+            X
+    end,
+    ok = ?ADAPTER:connect(DB, ?USER, ?PASS, Host, ?PORT),
     DB.
 
 -spec pl(Table :: table(), Data :: proplist_or_map()) -> insert_id().
