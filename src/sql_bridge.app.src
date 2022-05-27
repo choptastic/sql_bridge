@@ -2,7 +2,7 @@
 {application, sql_bridge,
     [
         {description, "A convenience layer for SQL databases"},
-        {vsn, "0.6.1"},
+        {vsn, "0.7.0"},
         {licenses, ["MIT"]},
         {links, [{"Github", "https://github.com/choptastic/sql_bridge"}]},
         {registered, []},

@@ -22,7 +22,10 @@ start() ->
 	application:start(poolboy),
 	ok.
 
+-define(POOL, sql_bridge_pool).
+
 connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
+    logger:notice("Starting Poolboy Pool for ~p",[DB]),
 	WorkerArgs = [
 		{database, atom_to_list(DB)},
 		{host, Host},
@@ -30,7 +33,7 @@ connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
 		{password, Pass},
 		{port, Port}
 	],
-	sql_bridge_utils:start_poolboy_pool(DB, WorkerArgs, mysql),
+	sql_bridge_utils:start_poolboy_pool(?POOL, WorkerArgs, mysql),
 	ok.
 
 wrap_field(V) ->
@@ -97,24 +100,41 @@ query(Type, DB, Q, ParamList) ->
 query_catched(Type, DB, Q, ParamList) ->
 	{Q2, ParamList2} = maybe_replace_tokens(Q, ParamList),
 	ToRun = fun(Worker) ->
-		Res = mysql_query(Worker, Q2, ParamList2),
-        case Res of
-            {error, Reason} ->
-                error_logger:warning_msg("Error in Query.~nError: ~p~nQuery: ~s",[Reason, Q]);
+        case maybe_set_db(Worker, DB) of
+            {error, DBReason} ->
+                error_logger:error_msg("Unable to set worker (~p) to DB (~p). Reason: ~p",[Worker, DB, DBReason]),
+                {error, {cannot_use_db, DB}};
             _ ->
-                ok
-        end,
-		case Type of
-			insert -> mysql:insert_id(Worker);
-			update -> mysql:affected_rows(Worker);
-			_ -> Res
-		end
+                Res = mysql_query(Worker, Q2, ParamList2),
+                case Res of
+                    {error, Reason} ->
+                        error_logger:warning_msg("Error in Query.~nError: ~p~nQuery: ~s",[Reason, Q]),
+                        {error, Reason};
+                    _ ->
+                        case Type of
+                            insert -> mysql:insert_id(Worker);
+                            update -> mysql:affected_rows(Worker);
+                            _ -> Res
+                        end
+                end
+        end
 	end,
 	case sql_bridge_utils:with_poolboy_pool(DB, ToRun) of
 		{error, Reason} -> {error, Reason};
 		Result ->
             {ok, format_result(Type, Result)}
 	end.
+
+maybe_set_db(Worker, DB) ->
+    case sql_bridge_worker_db:set(Worker, DB) of
+        updated -> 
+            %io:format("(~p) Using DB ~p~n",[Worker, DB]),
+            mysql:query(Worker, "USE " ++ atom_to_list(DB));
+        ok ->
+            ok
+            %io:format("(~p) Still using ~p~n",[Worker, DB])
+    end.
+    
 	
 mysql_query(Worker, Q, []) ->
 	mysql:query(Worker, Q);

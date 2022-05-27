@@ -12,4 +12,10 @@ init([]) ->
         intensity=>2000,
         period=>1
     },
-    {ok, {SupFlags, []}}.
+    Children = [
+        #{
+            id=>sql_bridge_worker_db,
+            start=>{sql_bridge_worker_db, start_link, []}
+        }
+    ],
+    {ok, {SupFlags, Children}}.
