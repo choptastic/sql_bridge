@@ -81,12 +81,12 @@ get_env(Var, Def) ->
         {ok, Val} -> Val
     end.
 
-with_poolboy_pool(DB, Fun) ->
-    case erlang:get({sql_bridge_current_pool, DB}) of
+with_poolboy_pool(Pool, Fun) ->
+    case erlang:get({sql_bridge_current_pool, Pool}) of
         undefined ->
-            Worker = poolboy:checkout(?POOL),
+            Worker = poolboy:checkout(Pool),
             Return = Fun(Worker),
-            poolboy:checkin(?POOL, Worker),
+            poolboy:checkin(Pool, Worker),
             %erlang:erase({sql_bridge_worker_db, Worker}),
             Return;
         {ok, Worker} ->
@@ -100,97 +100,97 @@ with_poolboy_pool(DB, Fun) ->
 %% deep we are, and if we reach a depth of 1, we're at the last depth, so we
 %% can clear the depth.
 
-checkout_pool(DB) ->
+checkout_pool(Pool) ->
     %% Are we checked out already? 0 = no, X >= 1 means yes.
-    case checkout_depth(DB) of
+    case checkout_depth(Pool) of
         0 ->
             %% Not checked out, so let's check out, and "go deeper" (bringing us to an initial depth of 1)
-            Worker = poolboy:checkout(?POOL),
-            erlang:put({sql_bridge_current_pool, ?POOL}, {ok, Worker}),
-            checkout_deeper(?POOL),
+            Worker = poolboy:checkout(Pool),
+            erlang:put({sql_bridge_current_pool, Pool}, {ok, Worker}),
+            checkout_deeper(Pool),
             ok;
         X when X >= 1 ->
             %% already checked out, just go deeper
-            checkout_deeper(?POOL),
+            checkout_deeper(Pool),
             ok
     end.
 
-checkin_pool(DB) ->
+checkin_pool(Pool) ->
     %% Are we checked out already?
-    case checkout_depth(DB) of
+    case checkout_depth(Pool) of
         1 -> 
             %% We're at a depth of 1 wihhc menas we're checked out, but this is
             %% the last checkout, so we can safely check back in
-            {ok, Worker} = erlang:get({sql_bridge_current_pool, DB}),
-            poolboy:checkin(?POOL, Worker),
-            erlang:put({sql_bridge_current_pool, DB}, undefined),
+            {ok, Worker} = erlang:get({sql_bridge_current_pool, Pool}),
+            poolboy:checkin(Pool, Worker),
+            erlang:put({sql_bridge_current_pool, Pool}, undefined),
             %erlang:erase({sql_bridge_worker_db, Worker}),
-            clear_checkout_depth(DB),
+            clear_checkout_depth(Pool),
             ok;
         X when X > 1 ->
             %% Yep, we're checked out, and it's not the last depth, so let's just how shallower
-            checkout_shallower(DB),
+            checkout_shallower(Pool),
             ok;
         X when X =< 0 ->
             %% something went wrong. We should never be attempting to check in
             %% at or less than 0. Throw an error
-            erlang:exit({invalid_depth_to_check_in, [{db, DB}, {depth, X}]})
+            erlang:exit({invalid_depth_to_check_in, [{pool, Pool}, {depth, X}]})
     end.
 
 
-checkout_depth(DB) ->
-    case erlang:get({checkout_depth, ?POOL}) of
+checkout_depth(Pool) ->
+    case erlang:get({checkout_depth, Pool}) of
         undefined -> 0;
         X when is_integer(X) -> X
     end.
 
-checkout_depth(DB, Val) ->
-    erlang:put({checkout_depth, ?POOL}, Val).
+checkout_depth(Pool, Val) ->
+    erlang:put({checkout_depth, Pool}, Val).
 
-clear_checkout_depth(DB) ->
-    erlang:erase({checkout_depth, ?POOL}).
+clear_checkout_depth(Pool) ->
+    erlang:erase({checkout_depth, Pool}).
 
-checkout_deeper(DB) ->
-    Depth = checkout_depth(DB),
+checkout_deeper(Pool) ->
+    Depth = checkout_depth(Pool),
     NewDepth = Depth + 1,
-    checkout_depth(DB, NewDepth),
+    checkout_depth(Pool, NewDepth),
     NewDepth.
 
-checkout_shallower(DB) ->
-    case checkout_depth(DB) of
+checkout_shallower(Pool) ->
+    case checkout_depth(Pool) of
         0 ->
             0;
         Depth ->
             NewDepth = Depth - 1,
-            checkout_depth(DB, NewDepth),
+            checkout_depth(Pool, NewDepth),
             NewDepth
     end.
 
-trans_depth(DB) ->
-    case erlang:get({trans_depth, ?POOL}) of
+trans_depth(Pool) ->
+    case erlang:get({trans_depth, Pool}) of
         undefined -> 0;
         X when is_integer(X) -> X
     end.
 
-trans_depth(DB, Val) ->
-    erlang:put({trans_depth, ?POOL}, Val).
+trans_depth(Pool, Val) ->
+    erlang:put({trans_depth, Pool}, Val).
 
-clear_trans_depth(DB) ->
-    erlang:erase({trans_depth, ?POOL}).
+clear_trans_depth(Pool) ->
+    erlang:erase({trans_depth, Pool}).
 
-trans_deeper(DB) ->
-    Depth = trans_depth(DB),
+trans_deeper(Pool) ->
+    Depth = trans_depth(Pool),
     NewDepth = Depth + 1,
-    trans_depth(DB, NewDepth),
+    trans_depth(Pool, NewDepth),
     NewDepth.
 
-trans_shallower(DB) ->
-    case trans_depth(DB) of
+trans_shallower(Pool) ->
+    case trans_depth(Pool) of
         0 ->
             0;
         Depth ->
             NewDepth = Depth - 1,
-            trans_depth(DB, NewDepth),
+            trans_depth(Pool, NewDepth),
             NewDepth
     end.
     

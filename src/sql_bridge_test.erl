@@ -14,12 +14,12 @@
 -define(P8, ?P(8)).
 -define(P9, ?P(9)).
 
-mysql_otp_test_() ->
-    {setup,
-     fun() -> gen_setup(sql_bridge_mysql_otp, postgres, 3306) end,
-     fun mysql_otp_cleanup/1,
-     fun main_tests/1
-    }.
+%mysql_otp_test_() ->
+%    {setup,
+%     fun() -> gen_setup(sql_bridge_mysql_otp, postgres, 3306) end,
+%     fun mysql_otp_cleanup/1,
+%     fun main_tests/1
+%    }.
 
 mysql_otp_trans_test_() ->
     {setup,
@@ -28,19 +28,19 @@ mysql_otp_trans_test_() ->
      fun trans_tests/1
     }.
 
-epgsql_trans_test_() ->
-    {setup,
-     fun() -> gen_setup(sql_bridge_epgsql, mysql, 5432) end,
-     fun epgsql_cleanup/1,
-     fun main_tests/1
-    }.
-
-epgsql_test_() ->
-    {setup,
-     fun() -> gen_setup(sql_bridge_epgsql, postgres, 5432) end,
-     fun epgsql_cleanup/1,
-     fun trans_tests/1
-    }.
+%epgsql_trans_test_() ->
+%    {setup,
+%     fun() -> gen_setup(sql_bridge_epgsql, mysql, 5432) end,
+%     fun epgsql_cleanup/1,
+%     fun main_tests/1
+%    }.
+%
+%epgsql_test_() ->
+%    {setup,
+%     fun() -> gen_setup(sql_bridge_epgsql, postgres, 5432) end,
+%     fun epgsql_cleanup/1,
+%     fun trans_tests/1
+%    }.
 
 
 gen_setup(Adapter, ReplacementType, Port) ->
@@ -54,7 +54,7 @@ gen_setup(Adapter, ReplacementType, Port) ->
     application:set_env(sql_bridge, replacement_token_style, ReplacementType),
     application:set_env(sql_bridge, stringify_binaries, true),
     sql_bridge:start(),
-    db:q("delete from fruit").
+    ok = db:q("delete from fruit").
 
 
 epgsql_cleanup(_) ->
@@ -137,12 +137,12 @@ test_trans(LookupPid, Quantity, CommitOrRollback) ->
         register_fruitid(LookupPid, Fruitid),
         true=db:exists(fruit, Fruitid),
         1=db:fffr("select count(*) from fruit"),
-        timer:sleep(1500),
+        timer:sleep(4000),
         OtherTranFruitid = lookup_fruitid(LookupPid, Fruitid),
         true=is_integer(OtherTranFruitid),
         true=(Fruitid=/=OtherTranFruitid),
         false=db:exists(fruit, OtherTranFruitid),
-        timer:sleep(1500),
+        timer:sleep(4000),
         commit=CommitOrRollback,
         Fruitid
     end),

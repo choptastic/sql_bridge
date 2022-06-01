@@ -40,33 +40,33 @@ wrap_field(V) ->
     "`" ++ sql_bridge_utils:to_string(V) ++ "`".
 
 start_transaction(DB) ->
-    case sql_bridge_utils:trans_depth(DB) of
+    case sql_bridge_utils:trans_depth(?POOL) of
         0 ->
             query(none, DB, "BEGIN", []);
         _ ->
             ok
     end,
-    sql_bridge_utils:trans_deeper(DB),
-    sql_bridge_utils:checkout_pool(DB),
+    sql_bridge_utils:trans_deeper(?POOL),
+    sql_bridge_utils:checkout_pool(?POOL),
     ok.
 
 rollback_transaction(DB) ->
-    sql_bridge_utils:trans_shallower(DB),
+    sql_bridge_utils:trans_shallower(?POOL),
 	query(none, DB, "ROLLBACK", []),
-	sql_bridge_utils:checkin_pool(DB),
+	sql_bridge_utils:checkin_pool(?POOL),
 	ok.
 
 commit_transaction(DB) ->
-    case sql_bridge_utils:trans_depth(DB) of
+    case sql_bridge_utils:trans_depth(?POOL) of
         1 ->
             Res = query(none, DB, "COMMIT", []),
-            sql_bridge_utils:clear_trans_depth(DB),
+            sql_bridge_utils:clear_trans_depth(?POOL),
             Res;
         X when X > 1 ->
-            sql_bridge_utils:trans_shallower(DB),
+            sql_bridge_utils:trans_shallower(?POOL),
             ok %% mysql does not supported nested transactions, so we'll only commit on the last depth
     end,
-	sql_bridge_utils:checkin_pool(DB),
+	sql_bridge_utils:checkin_pool(?POOL),
 	ok.
 
 with_transaction(DB, Fun) ->
@@ -119,7 +119,7 @@ query_catched(Type, DB, Q, ParamList) ->
                 end
         end
 	end,
-	case sql_bridge_utils:with_poolboy_pool(DB, ToRun) of
+	case sql_bridge_utils:with_poolboy_pool(?POOL, ToRun) of
 		{error, Reason} -> {error, Reason};
 		Result ->
             {ok, format_result(Type, Result)}
@@ -137,9 +137,11 @@ maybe_set_db(Worker, DB) ->
     
 	
 mysql_query(Worker, Q, []) ->
+    error_logger:info_msg("~p: ~p",[Worker, Q]),
 	mysql:query(Worker, Q);
 mysql_query(Worker, Q, ParamList) ->
     ParamList2 = pre_encode(ParamList),
+    error_logger:info_msg("~p: ~p~nArgs: ~p",[Worker, Q, ParamList]),
 	mysql:query(Worker, Q, ParamList2).
 
 pre_encode(List) ->
@@ -251,6 +253,6 @@ schema_db_column() ->
 	"table_schema".
 
 encode(Val) ->
-	sql_bridge_utils:with_poolboy_pool(sql_bridge:db(), fun(Worker) ->
+	sql_bridge_utils:with_poolboy_pool(?POOL, fun(Worker) ->
 		mysql:encode(Worker, Val)
 	end).
