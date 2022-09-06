@@ -98,20 +98,28 @@ but here are the configuration settings currently available:
         {port, 3306},
         {user, "user"},
         {pass, "userpass"},
+        %% all connection parameters can also be determined from 
+        %% a module or set from environment variables
+        %%
+        %% e.g. by a module function repo:get_host()
+        %% {host, {mod, repo, get_host }}
+        %%
+        %% or e.g. by an environment variable MY_HOST 
+        %% {host, {env, "MY_HOST"}}
 
         %% There are two different ways to determine database
         %%
         %% 1) All requests go to a single database, called 'database_name':
         {lookup, database_name}
         %%
-		%% 2) Before a request is made, run the function
+        %% 2) Before a request is made, run the function
         %% `lookup_module:lookup_function()`, for which the return value will
         %% be the database name
         {lookup, {lookup_module, lookup_function}},
 
-		%% Number of connections to establish per pool (which really means
-		%% number of connections per database).
-		{connections_per_pool, 10},
+        %% Number of connections to establish per pool (which really means
+        %% number of connections per database).
+        {connections_per_pool, 10},
 
         %% If a connection pool is saturated, this allows additional "overflow"
         %% connections to be established up to the limit specified below.
