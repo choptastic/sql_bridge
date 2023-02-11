@@ -9,7 +9,7 @@
 -define(ENV(Var, Def), (sql_bridge_utils:get_env(Var, Def))).
 -define(ALIAS,  ?ENV(module_alias, db)).
 -define(STRINGIFY, ?ENV(stringify_binaries, false)).
--define(ADAPTER,?ENV(adapter, sql_bridge_mysql)).
+-define(ADAPTER,?ENV(adapter, sql_bridge_mysql_otp)).
 -define(HOST,   ?ENV(host, "127.0.0.1")).
 -define(PORT,   ?ENV(port, undefined)).
 -define(USER,   ?ENV(user, "root")).
