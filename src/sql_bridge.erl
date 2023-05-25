@@ -155,6 +155,8 @@ connect(DB) when is_atom(DB) ->
                 Mod:Fun();
             {env, Name} ->
                 os:getenv(Name);
+            {Mod, Fun} when is_atom(Mod), is_atom(Fun) ->
+                Mod:Fun();
             _ ->
                 X
         end 
