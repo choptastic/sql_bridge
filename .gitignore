@@ -6,3 +6,5 @@ deps/
 ebin/
 compat.hrl
 _build
+rebar3
+rebar3.mk
