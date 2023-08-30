@@ -28,7 +28,9 @@ connect(DB, User, Pass, Host, Port) when is_atom(DB) ->
 		{host, Host},
 		{user, User},
 		{password, Pass},
-		{port, Port}
+		{port, Port},
+        %% This is an option for mysql-otp. It is probably worth adding it as a tweakable option for sql_bridge
+        {decode_decimal, number}
 	],
 	sql_bridge_utils:start_poolboy_pool(DB, WorkerArgs, mysql),
 	ok.
