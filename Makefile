@@ -11,6 +11,17 @@ run: rebar3
 test: rebar3 setup-all-tests
 	$(REBAR) eunit
 
+dev: _checkouts _checkouts/epgsql _checkouts/mysql
+
+_checkouts:
+	mkdir -p _checkouts
+
+_checkouts/epgsql:
+	git clone https://github.com/epgsql/epgsql _checkouts/epgsql
+
+_checkouts/mysql:
+	git clone https://github.com/mysql-otp/mysql-otp _checkouts/mysql
+
 publish: rebar3
 	$(REBAR) hex publish
 
