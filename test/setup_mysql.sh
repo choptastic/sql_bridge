@@ -1,3 +1,4 @@
-#!/bin/sh
+#!/usr/bin/bash
 
-mysql -uroot -p < test.mysql.sql
+echo "Loading test.mysql.sql into MySQL"
+sudo mysql < test.mysql.sql

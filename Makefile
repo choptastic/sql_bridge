@@ -8,7 +8,7 @@ compile: rebar3
 run: rebar3
 	$(REBAR) shell --config sample.config
 
-test: rebar3
+test: rebar3 setup-all-tests
 	$(REBAR) eunit
 
 publish: rebar3
@@ -16,6 +16,13 @@ publish: rebar3
 
 dialyzer: rebar3
 	$(REBAR) dialyzer
+
+setup-all-tests:
+	@(echo "This is going to ask for the sudo password because it will need to preload")
+	@(echo "some configurations for MySQL and postgreSQL")
+	@(cd test; sudo ./setup_dbs.sh)
+	
+
 
 # Check if rebar3.mk exists, and if not, download it
 ifeq ("$(wildcard rebar3.mk)","")
