@@ -130,7 +130,17 @@ format_result_inner(map, {ok, Columns, Rows}) ->
 	format_maps(Columns, Rows).
 
 columns_to_coltypes(Columns) ->
-    [{list_to_atom(binary_to_list(Col)), Type} || {column, Col, Type, _, _, _} <- Columns].
+    lists:filtermap(fun
+        %% At some point (not sure when), the tuple returned was converted from
+        %% a 6-tuple to an 8-tuple (probably an epgsql record). This
+        %% accommodates both versions.
+        ({column, Col, Type, _, _, _, _, _, _}) ->
+            {true, {binary_to_atom(Col), Type}};
+        ({column, Col, Type, _, _, _}) ->
+            {true, {binary_to_atom(Col), Type}};
+        (_) ->
+            false
+    end, Columns).
 
 normalize_value(numeric, B) when is_binary(B) ->
     normalize_value(numeric, binary_to_list(B));
