@@ -1,7 +1,8 @@
 drop database if exists sql_bridge_test;
 create database sql_bridge_test;
+create user 'sql_bridge_user' identified by 'sql_bridge_test_password';
 use sql_bridge_test;
-grant all on sql_bridge_test.* to 'sql_bridge_user'@'%' identified by 'sql_bridge_test_password';
+grant all privileges on sql_bridge_test.* to 'sql_bridge_user'@'%';
 
 create table fruit (
 	fruitid int auto_increment primary key,

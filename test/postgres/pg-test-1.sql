@@ -1,4 +1,3 @@
-
 drop database if exists sql_bridge_test;
 drop user if exists sql_bridge_user;
 

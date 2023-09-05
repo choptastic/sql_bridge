@@ -16,40 +16,41 @@
 
 mysql_otp_test_() ->
     {setup,
-     fun() -> gen_setup(sql_bridge_mysql_otp, postgres, 3306) end,
+     fun() -> gen_setup(sql_bridge_mysql_otp, mysql, "mysql", 3306) end,
      fun mysql_otp_cleanup/1,
      fun main_tests/1
     }.
 
 mysql_otp_trans_test_() ->
     {setup,
-     fun() -> gen_setup(sql_bridge_mysql_otp, mysql, 3306) end,
+     fun() -> gen_setup(sql_bridge_mysql_otp, mysql, "mysql", 3306) end,
      fun mysql_otp_cleanup/1,
      fun trans_tests/1
     }.
 
 epgsql_trans_test_() ->
     {setup,
-     fun() -> gen_setup(sql_bridge_epgsql, mysql, 5432) end,
+     fun() -> gen_setup(sql_bridge_epgsql, postgres, "postgres", 5432) end,
      fun epgsql_cleanup/1,
      fun main_tests/1
     }.
 
 epgsql_test_() ->
     {setup,
-     fun() -> gen_setup(sql_bridge_epgsql, postgres, 5432) end,
+     fun() -> gen_setup(sql_bridge_epgsql, postgres, "postgres", 5432) end,
      fun epgsql_cleanup/1,
      fun trans_tests/1
     }.
 
 
-gen_setup(Adapter, ReplacementType, Port) ->
+gen_setup(Adapter, ReplacementType, Host, Port) ->
     error_logger:info_msg("Starting Adapter: ~p~n",[Adapter]),
     application:load(sql_bridge),
     application:set_env(sql_bridge, adapter, Adapter),
     application:set_env(sql_bridge, port, Port),
     application:set_env(sql_bridge, user, "sql_bridge_user"),
     application:set_env(sql_bridge, pass, "sql_bridge_test_password"),
+    application:set_env(sql_bridge, host, Host),
     application:set_env(sql_bridge, lookup, sql_bridge_test),
     application:set_env(sql_bridge, replacement_token_style, ReplacementType),
     application:set_env(sql_bridge, stringify_binaries, true),

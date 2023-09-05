@@ -1,0 +1,51 @@
+name: Test SQL Bridge MySQL/PostGreSQL
+on: push
+
+jobs:
+  prepare-database-services:
+    runs-on: ubuntu-latest
+    container: erlang:25.3
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: mysql
+        ports:
+          - 3306:3306
+
+    steps:
+      - name: Checkout SQL bridge
+        uses: actions/checkout@v3
+
+      - name: Install database tools in container
+        run: |
+          apt update -y
+          apt install -y postgresql-client mariadb-client
+
+      - name: Provision databases for eunit tests
+        run: sh ./test/db_config.sh
+        env:
+          MYSQL_HOST: mysql
+          MYSQL_PWD: mysql
+          PGHOST: postgres
+          PGUSER: postgres
+          PGPASSWORD: postgres
+
+      - name: Compile existsing sql_bridge project
+        run: make compile
+
+      - name: Test SQL_bridge project
+        run: make test
+
