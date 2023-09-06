@@ -1,4 +1,4 @@
-## 0.6.0
+## 0.6.0 (in development)
 
 * The mysql-otp bridge has been reworked to use the mainline
   [mysql-otp](https://github.com/mysql-otp/mysql-otp) repo (rather than
