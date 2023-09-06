@@ -25,7 +25,9 @@
     clear_trans_depth/1,
     record_to_proplist/2,
     proplist_to_record/3,
-    format_datetime/1
+    format_datetime/1,
+    log/1,
+    log/2
 ]).
 
 replacement_token() ->
@@ -356,3 +358,15 @@ to_bin_or_str(L) when is_list(L) ->
         true -> lists:flatten(L);
         false -> iolist_to_binary(L)
     end.
+
+log(Msg) ->
+    log("~p", [Msg]).
+
+log(Msg, Args) ->
+    Msg2 = io_lib:format(Msg, Args),
+    Pid = self(),
+    PreSuf = "***************************************************\n",
+    Msg3 = io_lib:format("~p: ~ts\n\n", [Pid, Msg2]),
+    io:format("~s~ts~s", [PreSuf, Msg3, PreSuf]).
+
+

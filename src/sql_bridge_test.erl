@@ -143,6 +143,8 @@ test_trans(LookupPid, Quantity, CommitOrRollback) ->
         true=(Fruitid=/=OtherTranFruitid),
         false=db:exists(fruit, OtherTranFruitid),
         timer:sleep(1500),
+        %% this will crash if CommitOrRollback=rollback, causing the
+        %% transaction to be rolled back completely (or it should be, anyway)
         commit=CommitOrRollback,
         Fruitid
     end),

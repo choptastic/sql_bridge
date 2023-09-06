@@ -41,12 +41,12 @@ wrap_field(V) ->
 start_transaction(DB) ->
     case sql_bridge_utils:trans_depth(DB) of
         0 ->
+            sql_bridge_utils:checkout_pool(DB),
             query(none, DB, "BEGIN", []);
         _ ->
             ok
     end,
     sql_bridge_utils:trans_deeper(DB),
-    sql_bridge_utils:checkout_pool(DB),
     ok.
 
 rollback_transaction(DB) ->
@@ -77,7 +77,7 @@ with_transaction(DB, Fun) ->
 	catch
 		Error:Class:ST ->
             ErrMsg = [{Error, Class}, ST],
-            error_logger:info_msg("Errored Query: ~p",[ErrMsg]),
+            logger:warning("Errored Query: ~p",[ErrMsg]),
 			rollback_transaction(DB),
 			{error, ErrMsg}
 	end.
@@ -92,7 +92,7 @@ query(Type, DB, Q, ParamList) ->
         exit:{{{case_clause,{error,closed}}, _}, _} ->
             {error, disconnected};
         E:T ->
-            error_logger:error_msg("Unhandled Error: ~p:~p", [E,T]),
+            logger:error("Unhandled Error: ~p:~p", [E,T]),
             throw(unhandled_error)
 	end.
 
@@ -102,18 +102,22 @@ query_catched(Type, DB, Q, ParamList) ->
 		Res = mysql_query(Worker, Q2, ParamList2),
         case Res of
             {error, Reason} ->
-                error_logger:warning_msg("Error in Query.~nError: ~p~nQuery: ~s",[Reason, Q]);
+                logger:warning("Error in Query.~nError: ~p~nQuery: ~s",[Reason, Q]);
             _ ->
                 ok
         end,
-		case Type of
-			insert -> mysql:insert_id(Worker);
-			update -> mysql:affected_rows(Worker);
-			_ -> Res
+        %% NOTE: For now, not going to match on the {error,_} tuple just to see
+        %% the impact it might have on my libraries before doing this.
+		case {Res, Type} of
+            %{{error, _}, _} -> Res;
+            {_, insert} -> mysql:insert_id(Worker);
+            {_, update} -> mysql:affected_rows(Worker);
+            _ -> Res
 		end
 	end,
 	case sql_bridge_utils:with_poolboy_pool(DB, ToRun) of
-		{error, Reason} -> {error, Reason};
+		{error, Reason} ->
+            {error, Reason};
 		Result ->
             {ok, format_result(Type, Result)}
 	end.
