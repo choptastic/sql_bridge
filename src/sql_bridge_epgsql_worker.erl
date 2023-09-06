@@ -20,8 +20,19 @@ init(Args) ->
 	Username = proplists:get_value(username, Args),
 	Password = proplists:get_value(password, Args),
 	Port = proplists:get_value(port, Args, 5432),
-	Options = [{database, Database}, {port, Port}],
-	{ok, Conn} = epgsql:connect(Hostname, Username, Password, Options),
+	Options = #{
+        host => Hostname,
+        username => Username,
+        password => Password,
+        database => Database,
+        port => Port,
+        codecs => [
+            {sql_bridge_epgsql_codec_integer, []},
+            {sql_bridge_epgsql_codec_datetime, []},
+            {sql_bridge_epgsql_codec_numeric, []}
+        ]
+    },
+	{ok, Conn} = epgsql:connect(Options),
 	{ok, #state{conn=Conn}}.
 
 handle_call({squery, Sql}, _From, #state{conn=Conn}=State) ->

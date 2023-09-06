@@ -166,6 +166,8 @@ main_tests(_) ->
      ?_assertEqual(undefined, db:fffr("select description from fruit where fruit='apple'")),
      ?_assertEqual(5, db:fffr(["select quantity from fruit where fruit=",?P1 ], [apple])),
      ?_assertEqual("apple", db:fffr(["select fruit from fruit where quantity=", ?P1], [5])),
+     ?_assertEqual("apple", db:fffr(["select fruit from fruit where quantity=", ?P1], ["5"])),
+     ?_assertEqual("apple", db:fffr(["select fruit from fruit where quantity=", ?P1], [<<"5">>])),
      ?_assert(is_integer(db:pl(fruit, [{fruitid, 0}, {fruit, <<"banana">>}, {quantity, 100}, {description, "long and yellow"}, {some_float, 6.1}]))),
      ?_assert(is_float(db:fffr("select sum(some_float) from fruit"))),
      ?_assertMatch("long and yellow", db:field(fruit, description, fruit, "banana")),

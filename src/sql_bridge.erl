@@ -521,7 +521,8 @@ table_fields(Table0) ->
     DBCol = ?ADAPTER:schema_db_column(),
     SQL = [<<"select column_name
              from information_schema.columns
-             where ">>,DBCol,<<"=">>,T1,<<" and table_name=">>,T2],
+             where ">>,DBCol,<<"=">>,T1,<<" and table_name=">>,T2,
+             <<" order by ordinal_position">>],
     [sql_bridge_utils:to_atom(F) || F <- ffl(SQL, [DB, Table])].
 
 table_and_db(Table) ->
