@@ -11,7 +11,9 @@
             stdlib
         ]},
         {loaded_applications, [
-            erlias
+            erlias,
+            mysql,
+            epgsql
         ]},
         {env, []},
         {mod, {sql_bridge_app, []}}

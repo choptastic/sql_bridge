@@ -24,9 +24,9 @@ encode({Data, TZ}, timetz=Type, State) when ?IS_STRING(Data) ->
 encode(Data, timestamp=Type, State) when ?IS_STRING(Data) ->
     Data2 = s2timestamp(Data),
     ?MAIN_MOD:encode(Data2, Type, State);
-encode({Data, TZ}, timestamptz=Type, State) when ?IS_STRING(Data) ->
+encode(Data, timestamptz=Type, State) when ?IS_STRING(Data) ->
     Data2 = s2timestamp(Data),
-    ?MAIN_MOD:encode({Data2, TZ}, Type, State);
+    ?MAIN_MOD:encode(Data2, Type, State);
 encode(Data, Type, State) ->
     ?MAIN_MOD:encode(Data, Type, State).
 

@@ -348,11 +348,13 @@ format_datetime({H,I,S}) when is_float(S) ->
 format_datetime({Y,M,D}) ->
 	to_bin_or_str(io_lib:format("~4..0B-~2..0B-~2..0B", [Y,M,D])).
 
-to_bin_or_str(B) when is_binary(B) ->
-    case stringify_binaries() of
-        true -> sql_bridge_stringify:maybe_string(B);
-        false -> B
-    end;
+
+%The is_binary clause is not currently used. If it ever is needed, here it is to uncomment
+%to_bin_or_str(B) when is_binary(B) ->
+%    case stringify_binaries() of
+%        true -> sql_bridge_stringify:maybe_string(B);
+%        false -> B
+%    end;
 to_bin_or_str(L) when is_list(L) ->
     case stringify_binaries() of
         true -> lists:flatten(L);
