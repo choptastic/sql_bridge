@@ -1,6 +1,14 @@
 #!/usr/bin/env escript
 %% vim: ts=4 sw=4 et ft=erlang
 
+%% NOTE: this file no longer needs to be run, at least for now.
+%% I'm keeping it here in case, future compat changes are necessary, and it can
+%% be used as a basis for the future scripts.
+%%
+%% IF WE DO NEED IT, we'll need to remove the `compat.hrl` file from source
+%% control again.
+%%
+
 %% Erlang 17 Changed the expected types of dict(), gb_trees(), etc to require
 %% prefixing with the module name. This caused a non-backwards compatibile
 %% break with versions prior to Erlang 17.
@@ -14,17 +22,7 @@
 %%
 %% Note: This should be run *before* compiling!
 
--define(TYPE_PREFIX, "t_").
--define(TYPES, [
-   %{old version, new version}
-    {"dict()", "dict:dict()"},
-    {"queue()", "queue:queue()"},
-    {"gb_tree()", "gb_trees:tree()"}
-]).
-
 main([]) ->
-    crypto:start(),
-
 	Filename = "include/compat.hrl",
 	io:format("Generating ~p ...~n", [Filename]),
 
@@ -44,31 +42,23 @@ main([]) ->
             file:write_file(Filename, Contents)
     end.
 
-process_otp_version(Version = "R" ++ _) ->
-    io:format("sql_bridge compat: OTP ~s:~n", [Version]),
-    io:format("      + does not require module prefixes for types~n"),
-    io:format("      + does not support maps...~n"),
-    [
-        [make_type_pre_17(OldType) || {OldType, _} <- ?TYPES],
-        make_nomap_macro()
-    ];
 process_otp_version(Version) ->
     io:format("sql_bridge compat: OTP ~s:~n", [Version]),
-    io:format("      + requires module prefixes for types~n"),
-    io:format("      + supports maps...~n"),
+    %io:format("      + requires module prefixes for types~n"),
+    %io:format("      + supports maps...~n"),
     [
-        [make_type_17_plus(Types) || Types <- ?TYPES],
-        make_map_macro()
+    %    [make_type_17_plus(Types) || Types <- ?TYPES],
+    %    make_map_macro()
     ].
 
-make_type_pre_17(Type) ->
-    ["-type ",?TYPE_PREFIX,Type, " :: ",Type,".\n"].
-
-make_type_17_plus({Type, FullType}) ->
-    ["-type ",?TYPE_PREFIX,Type, " :: ",FullType,".\n"].
-
-make_map_macro() ->
-    ["-define(has_maps, true).\n"].
-
-make_nomap_macro() ->
-    [].
+%make_type_pre_17(Type) ->
+%    ["-type ",?TYPE_PREFIX,Type, " :: ",Type,".\n"].
+%
+%make_type_17_plus({Type, FullType}) ->
+%    ["-type ",?TYPE_PREFIX,Type, " :: ",FullType,".\n"].
+%
+%make_map_macro() ->
+%    ["-define(has_maps, true).\n"].
+%
+%make_nomap_macro() ->
+%    [].

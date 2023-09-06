@@ -213,7 +213,6 @@ make_proplist([Col|Cols], [Val|Vals]) ->
 make_proplist([], []) ->
 	[].
 
--ifdef(has_maps).
 format_maps(Columns, Rows) ->
 	ColNames = extract_colnames(Columns),
 	[make_map(ColNames, Row) || Row <- Rows].
@@ -227,11 +226,6 @@ make_map([Col|Cols],[Val|Vals], Map) ->
 	Val2 = normalize_value(Val),
 	NewMap = maps:put(Col, Val2, Map),
 	make_map(Cols, Vals, NewMap).
-
--else.
-format_maps(_,_) ->
-	throw(maps_not_supported).
--endif.
 
 schema_db_column() ->
 	"table_schema".

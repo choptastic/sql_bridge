@@ -28,14 +28,10 @@
 -type affected_rows() :: integer().
 -type proplist()    :: [{atom(), value()}].
 %-type json()        :: list().
--type return_type() :: dict | list | proplist | tuple | insert | update.
 -type return_value() :: insert_id() | affected_rows()
                         | [list() | tuple() | t_dict() | proplist()].
--ifdef(has_maps).
+-type return_type() :: dict | list | proplist | tuple | insert | update | map.
 -type proplist_or_map() :: tuple() | proplist() | map().
--else.
--type proplist_or_map() :: tuple() | proplist().
--endif.
 
 -export_type([
     sql/0,
@@ -217,19 +213,12 @@ save_(Table,KeyField,PropList) when is_list(Table) ->
     end.
 
 
--ifdef(has_maps).
 ensure_proplist(Record) when is_atom(element(1, Record)) ->
     ensure_proplist(sql_bridge_utils:convert_record(Record));
 ensure_proplist(Map) when is_map(Map) ->
     maps:to_list(Map);
 ensure_proplist(PL) when is_list(PL) ->
     PL.
--else.
-ensure_proplist(Record) when is_atom(element(1, Record)) ->
-    ensure_proplist(sql_bridge_utils:convert_record(Record));
-ensure_proplist(PL) when is_list(PL) ->
-    PL.
--endif.
 
 -spec filter_fields(Table :: table(), PropList :: proplist()) -> proplist().
 % @doc removes from Proplist any fields that aren't found in the table "Table"
@@ -279,7 +268,6 @@ dq(Q,ParamList) ->
     Db = db(),
     db_q(dict,Db,Q,ParamList).
 
--ifdef(has_maps).
 -spec mq(Q :: sql()) -> [map()].
 %% @doc Same as d1/, but returns a list of maps
 mq(Q) ->
@@ -291,7 +279,6 @@ mq(Q) ->
 mq(Q, ParamList) ->
     Db = db(),
     db_q(map, Db, Q, ParamList).
--endif.
 
 -spec tq(Q :: sql()) -> [tuple()].
 %% @doc Same as q/1, but returns a list of tuples
@@ -440,8 +427,6 @@ plfr(Q,ParamList) ->
 plfr(Q) ->
     plfr(Q,[]).
 
--ifdef(has_maps).
-
 -spec mfr(Q :: sql(), ParamList :: [value()]) -> map() | not_found.
 %% @doc fr = First Record
 mfr(Q,ParamList) ->
@@ -453,8 +438,6 @@ mfr(Q,ParamList) ->
 -spec mfr(Q :: sql()) -> map() | not_found.
 mfr(Q) ->
     mfr(Q,[]).
-
--endif.
 
 -spec tfr(Q :: sql()) -> tuple() | not_found.
 tfr(Q) ->
