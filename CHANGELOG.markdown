@@ -1,4 +1,4 @@
-## 0.6.0 (in development)
+## 0.7.0 (in development)
 
 * The mysql-otp bridge has been reworked to use the mainline
   [mysql-otp](https://github.com/mysql-otp/mysql-otp) repo (rather than
@@ -18,6 +18,12 @@
 * Fix a big transaction bug in the mysql-otp bridge. Embarrassingly,
   transactions mostly weren't working for MySQL.
 * Fix all dialyzer errors.
+* Added Github CI testing
+
+## 0.6.0
+
+* Added support for setting the hostname to a `{Mod,Fun}` tuple that will be
+  called to determine which DB server to connect to.
 
 ## 0.5.1
 
