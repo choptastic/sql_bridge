@@ -34,18 +34,11 @@ jobs:
           apt update -y
           apt install -y postgresql-client mariadb-client
 
-      - name: Provision databases for eunit tests
-        run: sh ./test/db_config.sh
+      - name: Provision databases & SQL Bridge eunit tests
+        run: make test
         env:
           MYSQL_HOST: mysql
           MYSQL_PWD: mysql
           PGHOST: postgres
           PGUSER: postgres
           PGPASSWORD: postgres
-
-      - name: Compile existsing sql_bridge project
-        run: make compile
-
-      - name: Test SQL_bridge project
-        run: make test
-

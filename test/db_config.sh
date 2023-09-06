@@ -1,7 +1,12 @@
-#!/bin/sh
+#!/bin/bash
 
 PGCMD=/usr/bin/psql
 MYSQLCMD=/usr/bin/mysql
+
+
+if [[ -z $GITHUB_ACTION && -z $PGHOST && -z $MYSQ_HOST ]]; then
+    . test/db.env
+fi
 
 echo "[*] Provisioning the Postres database server"
 $PGCMD < test/postgres/pg-test-1.sql
