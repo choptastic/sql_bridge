@@ -17,6 +17,7 @@
   available in [hex.pm](https://hex.pm/packages/sql_bridge).
 * Fix a big transaction bug in the mysql-otp bridge. Embarrassingly,
   transactions mostly weren't working for MySQL.
+* Fix all dialyzer errors.
 
 ## 0.5.1
 
