@@ -20,10 +20,15 @@
 * Fix all dialyzer errors.
 * Added Github CI testing
 
-## 0.6.0
+## 0.6.1
 
 * Added support for setting the hostname to a `{Mod,Fun}` tuple that will be
   called to determine which DB server to connect to.
+
+## 0.6.0
+
+* Loosen the supervisor failure conditions, so `sql_bridge` doesn't go offline
+  if the backend DB server goes offline for an extended period.
 
 ## 0.5.1
 
