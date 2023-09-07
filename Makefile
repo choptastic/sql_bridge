@@ -30,20 +30,8 @@ dialyzer: rebar3
 	$(REBAR) dialyzer
 
 setup-all-tests:
-	@(echo "This is going to ask for the sudo password because it will need to preload")
-	@(echo "some configurations for MySQL and postgreSQL")
-	@(cd test; sudo ./setup_dbs.sh)
-	
-setup-mysql-tests:
-	@(echo "This is going to ask for the sudo password because it will need to preload")
-	@(echo "MySQL configurations and data")
-	@(cd test; sudo ./setup_mysql.sh)
-
-setup-postgres-tests:
-	@(echo "This is going to ask for the sudo password because it will need to preload")
-	@(echo "PostgreSQL configurations and data")
-	@(cd test; sudo ./setup_postgres.sh)
-
+	@(echo "Configurationing databases for MySQL and postgreSQL tests")
+	@(./test/db_config.sh)
 
 # Check if rebar3.mk exists, and if not, download it
 ifeq ("$(wildcard rebar3.mk)","")

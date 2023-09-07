@@ -1,7 +1,7 @@
 grant all on database sql_bridge_test to sql_bridge_user;
 alter default privileges
-	in schema public
-	grant select, insert, update, delete on tables to sql_bridge_user;
+  in schema public
+  grant select, insert, update, delete on tables to sql_bridge_user;
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, USAGE ON sequences TO sql_bridge_user;
 
@@ -15,6 +15,7 @@ create table fruit (
 	some_float float
 );
 
+drop table if exists other;
 create table other (
 	otherid serial primary key,
 	my_time time,
