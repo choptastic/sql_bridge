@@ -14,30 +14,37 @@
 -define(P8, ?P(8)).
 -define(P9, ?P(9)).
 
+-define(MYSQL_HOST, os:getenv("MYSQLHOST", "localhost")).
+-define(PG_HOST, os:getenv("PGHOST", "localhost")).
+
 mysql_otp_test_() ->
     {setup,
-     fun() -> gen_setup(sql_bridge_mysql_otp, mysql, os:getenv("MYSQL_HOST", "mysql"), 3306) end,
+     %% We are intentionally testing postgres-style token replacements on mysql
+     %% (so 'postgres' is not a typo here)
+     fun() -> gen_setup(sql_bridge_mysql_otp, postgres, ?MYSQL_HOST, 3306) end,
      fun mysql_otp_cleanup/1,
      fun main_tests/1
     }.
 
 mysql_otp_trans_test_() ->
     {setup,
-     fun() -> gen_setup(sql_bridge_mysql_otp, mysql, os:getenv("MYSQL_HOST", "mysql"), 3306) end,
+     fun() -> gen_setup(sql_bridge_mysql_otp, mysql, ?MYSQL_HOST, 3306) end,
      fun mysql_otp_cleanup/1,
      fun trans_tests/1
     }.
 
 epgsql_trans_test_() ->
     {setup,
-     fun() -> gen_setup(sql_bridge_epgsql, postgres, os:getenv("PGHOST", "postgres"), 5432) end,
+     fun() -> gen_setup(sql_bridge_epgsql, postgres, ?PG_HOST, 5432) end,
      fun epgsql_cleanup/1,
      fun main_tests/1
     }.
 
 epgsql_test_() ->
     {setup,
-     fun() -> gen_setup(sql_bridge_epgsql, postgres, os:getenv("PGHOST", "postgres"), 5432) end,
+     %% We are intentionally testing mysql-style token replacements on pgsql
+     %% (so 'mysql' is not a typo here)
+     fun() -> gen_setup(sql_bridge_epgsql, mysql, ?PG_HOST, 5432) end,
      fun epgsql_cleanup/1,
      fun trans_tests/1
     }.

@@ -37,8 +37,8 @@ jobs:
       - name: Provision databases & SQL Bridge eunit tests
         run: make test
         env:
-          MYSQL_HOST: mysql
-          MYSQL_PWD: mysql
+          MYSQLHOST: mysql
+          MYSQLPWD: mysql
           PGHOST: postgres
           PGUSER: postgres
           PGPASSWORD: postgres
