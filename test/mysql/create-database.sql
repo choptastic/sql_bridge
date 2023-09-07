@@ -1,9 +1,7 @@
 drop database if exists sql_bridge_test;
 create database sql_bridge_test;
-drop user if exists sql_bridge_user;
-create user 'sql_bridge_user' identified by 'sql_bridge_test_password';
+
 use sql_bridge_test;
-grant all privileges on sql_bridge_test.* to 'sql_bridge_user'@'%';
 
 drop table if exists fruit;
 create table fruit (

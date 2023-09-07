@@ -1,44 +1,84 @@
-name: Test SQL Bridge MySQL/PostGreSQL
+name: Test SQL Bridge MySQL/PostgreSQL
 on: push
 
 jobs:
-  prepare-database-services:
-    runs-on: ubuntu-latest
-    container: erlang:25.3
+  linux:
+    name: OTP ${{ matrix.otp_version }}/${{ matrix.mysql }}/PG ${{ matrix.pg}}
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
 
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: mysql
-        ports:
-          - 3306:3306
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            mysql: "mariadb-11.1"
+            pg: "16rc1"
+            otp_version: '26.x'
+            rebar3_version: "3.22.1"
+          - os: ubuntu-22.04
+            mysql: "mariadb-10.11"
+            pg: "15"
+            otp_version: '26.x'
+            rebar3_version: "3.22.1"
+          - os: ubuntu-22.04
+            mysql: "mariadb-10.2"
+            pg: "14"
+            otp_version: '25.x'
+            rebar3_version: "3.22.1"
+          - os: ubuntu-22.04
+            mysql: "mysql-8.1"
+            pg: "13"
+            otp_version: '25.x'
+            rebar3_version: "3.22.1"
+          - os: ubuntu-22.04
+            mysql: "mysql-8.0"
+            pg: "12"
+            otp_version: '24.x'
+            rebar3_version: "3.22.1"
+          - os: ubuntu-22.04
+            mysql: "mysql-5.7"
+            pg: "11"
+            otp_version: '24.x'
+            rebar3_version: "3.22.1"
+          - os: ubuntu-20.04
+            mysql: "mysql-5.6"
+            pg: "14.9"
+            otp_version: '23.x'
+            rebar3_version: "3.19.0"
 
     steps:
+      - name: Install OTP ${{matrix.otp_version}}
+        uses: erlef/setup-beam@v1
+        with:
+          version-type: loose
+          otp-version: ${{ matrix.otp_version}}
+          rebar3-version: ${{ matrix.rebar3_version}}
+
+      # https://github.com/marketplace/actions/actions-setup-mysql
+      - name: Install ${{ matrix.mysql }}
+        uses: shogo82148/actions-setup-mysql@v1.23.0
+          #env:
+          #  ImageOS: ubuntu20
+        with:
+          mysql-version: ${{ matrix.mysql }}
+          ## I have no idea why, but if I didn't have the actions-setup-mysql
+          ## rule set up first, the new user config just wouldn't take.
+          user: sql_bridge_user
+          password: sql_bridge_test_password
+
+      # https://github.com/marketplace/actions/setup-postgresql-with-postgresql-extensions-and-unprivileged-user
+      - name: Install Postgres ${{ matrix.pg }}
+        uses: Daniel-Marynicz/postgresql-action@master
+        with:
+          postgres_image_tag: ${{ matrix.pg }}
+
       - name: Checkout SQL bridge
         uses: actions/checkout@v3
 
-      - name: Install database tools in container
-        run: |
-          apt update -y
-          apt install -y postgresql-client mariadb-client
-
-      - name: Provision databases & SQL Bridge eunit tests
-        run: make test
+      - name: Load databases & Run SQL Bridge eunit tests
+        run: make ci
         env:
-          MYSQLHOST: mysql
-          MYSQLPWD: mysql
-          PGHOST: postgres
+          MYSQLHOST: localhost
+          PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
