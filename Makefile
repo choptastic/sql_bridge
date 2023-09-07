@@ -30,7 +30,7 @@ dialyzer: rebar3
 	$(REBAR) dialyzer
 
 setup-all-tests:
-	@(echo "Configurationing databases for MySQL and postgreSQL tests")
+	@(echo "Configuring databases for MySQL and PostgreSQL tests")
 	@(./test/db_config.sh)
 
 # Check if rebar3.mk exists, and if not, download it
