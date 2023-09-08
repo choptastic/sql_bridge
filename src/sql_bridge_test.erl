@@ -78,29 +78,30 @@ mysql_otp_cleanup(_) ->
 trans_tests(_) ->
     LookupPid = erlang:spawn(fun lookup_loop/0),
     [
-        {timeout, 15000, [
-            {inparallel, [
-                ?_assert(test_trans(LookupPid, 1)),
-                ?_assert(test_trans(LookupPid, 2)),
-                ?_assert(test_trans(LookupPid, 3)),
-                ?_assert(test_trans(LookupPid, 4)),
-                ?_assert(test_trans(LookupPid, 5)),
-                ?_assert(test_trans(LookupPid, 6)),
-                ?_assert(test_trans(LookupPid, 7)),
-                ?_assert(test_trans(LookupPid, 8)),
-                ?_assert(test_trans(LookupPid, 9)),
-                ?_assert(test_trans(LookupPid, 10)),
-                ?_assert(test_trans(LookupPid, 11)),
-                ?_assert(test_trans(LookupPid, 12)),
-                ?_assertNot(test_trans(LookupPid, 500, rollback)),
-                ?_assertNot(test_trans(LookupPid, 600, rollback)),
-                ?_assertNot(test_trans(LookupPid, 700, rollback))
-            ]}
-        ]},
-        [
-         ?_assertEqual(12, db:fffr("select count(*) from fruit")),
-         ?_assertEqual(12, db:fffr(["select count(*) from fruit where quantity in (",db:encode_list([1,2,3,4,5,6,7,8,9,10,11,12]),")"]))
-        ]
+        {inorder, [
+            % Extending the timeout from 15000 to 20000, in case github actions was just running slowly?
+            {timeout, 20000, [
+                {inparallel, [
+                    ?_assert(test_trans(LookupPid, 1)),
+                    ?_assert(test_trans(LookupPid, 2)),
+                    ?_assert(test_trans(LookupPid, 3)),
+                    ?_assert(test_trans(LookupPid, 4)),
+                    ?_assert(test_trans(LookupPid, 5)),
+                    ?_assert(test_trans(LookupPid, 6)),
+                    ?_assert(test_trans(LookupPid, 7)),
+                    ?_assert(test_trans(LookupPid, 8)),
+                    ?_assert(test_trans(LookupPid, 9)),
+                    ?_assert(test_trans(LookupPid, 10)),
+                    ?_assert(test_trans(LookupPid, 11)),
+                    ?_assert(test_trans(LookupPid, 12)),
+                    ?_assertNot(test_trans(LookupPid, 50, rollback)),
+                    ?_assertNot(test_trans(LookupPid, 60, rollback)),
+                    ?_assertNot(test_trans(LookupPid, 70, rollback))
+                ]}
+            ]},
+            ?_assertEqual(12, db:fffr("select count(*) from fruit")),
+            ?_assertEqual(12, db:fffr(["select count(*) from fruit where quantity in (",db:encode_list([1,2,3,4,5,6,7,8,9,10,11,12]),")"]))
+        ]}
     ].
 
 lookup_loop() ->
@@ -111,10 +112,16 @@ lookup_loop(Fruitids) ->
         {register, Fruitid} ->
             lookup_loop(Fruitids ++ [Fruitid]);
         {lookup, Pid} ->
+            %% Get the first fruit from thee list
             [Fruitid|Rest] = Fruitids,
+            %% send it back to the user
             Pid ! Fruitid,
-            lookup_loop(Rest)
+            %% Put the found fruitid to the end of the list (so we don't grab it again right away)
+            NewFruitids = Rest ++ [Fruitid],
+            %% then loop again
+            lookup_loop(NewFruitids)
     after
+        %% if no messages received for 10 seconds, we can safely die1
         10000 -> die
     end.
 
@@ -125,7 +132,7 @@ lookup_fruitid(LookupPid, NotFruitid) ->
     LookupPid ! {lookup, self()},
     receive
         NotFruitid ->
-            register_fruitid(LookupPid, NotFruitid),
+            %% We happened to retrieve ourselves. We don't want that. Try again (the queue will change with each request)
             lookup_fruitid(LookupPid, NotFruitid);
         Fruitid ->
             Fruitid
@@ -136,27 +143,59 @@ lookup_fruitid(LookupPid, NotFruitid) ->
 test_trans(LookupPid, Quantity) ->
     test_trans(LookupPid, Quantity, commit).
 
+-define(TRANS_STATUS(Msg, Args), trans_status(StartTime, FruitName, Msg, Args)).
+-define(TRANS_STATUS(Msg), ?TRANS_STATUS(Msg, [])).
+
 test_trans(LookupPid, Quantity, CommitOrRollback) ->
     FruitName = "Fruit-" ++ integer_to_list(Quantity),
+    SleepModifier = Quantity * 10,
     _AddedFruitid = db:trans(fun() ->
-        timer:sleep(1000),
+        FirstSleep = 1000 - SleepModifier,
+        SecondSleep = 1500 + SleepModifier,
+        ThirdSleep = 2000,
+        StartTime = os:timestamp(),
+        ?TRANS_STATUS("Transaction Started. Sleeping for ~pms", [FirstSleep]),
+        timer:sleep(FirstSleep),
+        ?TRANS_STATUS("Woke up. Verifying fruit table is empty"),
         0=db:fffr("select count(*) from fruit"),
+        ?TRANS_STATUS("Inserting ~s", [FruitName]),
         Fruitid = db:qi(["insert into fruit(fruit, quantity) values(",?P1,",",?P2,")"], [FruitName, Quantity]),
+        ?TRANS_STATUS("Inserted (fruitid=~p). Registering with tracker process",[Fruitid]),
         register_fruitid(LookupPid, Fruitid),
+        ?TRANS_STATUS("Registered. Verifying that Friutid=~p exists in transaction.", [Fruitid]),
         true=db:exists(fruit, Fruitid),
+        ?TRANS_STATUS("fruitid=~p exists. Counting records in table (should only be 1)", [Fruitid]),
         1=db:fffr("select count(*) from fruit"),
-        timer:sleep(1500),
+        ?TRANS_STATUS("Verified. Sleeping for ~pms", [SecondSleep]),
+        timer:sleep(SecondSleep),
+        ?TRANS_STATUS("Woke up. Getting a random other fruit that was inserted in another transaction."),
         OtherTranFruitid = lookup_fruitid(LookupPid, Fruitid),
+        ?TRANS_STATUS("Retrieved other fruitid=~p. Verifying its validity.",[OtherTranFruitid]),
         true=is_integer(OtherTranFruitid),
         true=(Fruitid=/=OtherTranFruitid),
+        ?TRANS_STATUS("Verified. Verifying that fruitid=~p does not yet exists in this transaction.",[OtherTranFruitid]),
         false=db:exists(fruit, OtherTranFruitid),
-        timer:sleep(1500),
+        ?TRANS_STATUS("Verified. Sleeping for ~pms.",[ThirdSleep]),
+        timer:sleep(ThirdSleep),
+        ?TRANS_STATUS("Woke up. Now checking if we should crash or return."),
         %% this will crash if CommitOrRollback=rollback, causing the
         %% transaction to be rolled back completely (or it should be, anyway)
         commit=CommitOrRollback,
         Fruitid
     end),
     db:qexists(["select * from fruit where quantity=",?P1], [Quantity]).
+
+%sleep_random(Min, Max) ->
+%    Time = crypto:rand_uniform(Min, Max),
+%    timer:sleep(Time).
+
+trans_status(StartTime, Tag, Msg, Args) ->
+    Now = os:timestamp(),
+    Microsec = timer:now_diff(Now, StartTime),
+    ElapsedMS = Microsec div 1000,
+    Args2 = [self(), Tag, ElapsedMS] ++ Args,
+    Msg2 = "(~p) Trans Update [Tag = ~p] (~pms Elapsed): " ++ Msg ++ "\n",
+    logger:notice(Msg2, Args2).
 
 main_tests(_) ->
     [
