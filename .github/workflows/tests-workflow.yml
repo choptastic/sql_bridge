@@ -3,7 +3,7 @@ on: push
 
 jobs:
   linux:
-    name: OTP ${{ matrix.otp_version }}/${{ matrix.mysql }}/PG ${{ matrix.pg}}
+    name: OTP ${{ matrix.otp_version }} (${{ matrix.mysql }}/PG ${{ matrix.pg}})
     runs-on: ${{ matrix.os }}
     continue-on-error: true
 
@@ -19,6 +19,16 @@ jobs:
             mysql: "mariadb-10.11"
             pg: "15"
             otp_version: '26.x'
+            rebar3_version: "3.22.1"
+          - os: ubuntu-22.04
+            mysql: "mariadb-11.1"
+            pg: "16rc1"
+            otp_version: '25.x'
+            rebar3_version: "3.22.1"
+          - os: ubuntu-22.04
+            mysql: "mariadb-10.11"
+            pg: "15"
+            otp_version: '25.x'
             rebar3_version: "3.22.1"
           - os: ubuntu-22.04
             mysql: "mariadb-10.2"
@@ -76,9 +86,12 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Load databases & Run SQL Bridge eunit tests
-        run: make ci
+        run: make test
         env:
           MYSQLHOST: localhost
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
+
+      - name: Run Dialyzer
+        run: make dialyzer

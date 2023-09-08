@@ -11,8 +11,6 @@ run: rebar3
 test: rebar3 setup-all-tests
 	$(REBAR) eunit
 
-ci: test dialyzer
-
 dev: _checkouts _checkouts/epgsql _checkouts/mysql
 
 _checkouts:
