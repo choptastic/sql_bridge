@@ -1,5 +1,7 @@
 # SQL_Bridge
 
+[![SQL Bridge Tests & Dialyzer](https://github.com/choptastic/sql_bridge/actions/workflows/tests-workflow.yml/badge.svg)](https://github.com/choptastic/sql_bridge/actions/workflows/tests-workflow.yml)
+
 An Erlang SQL Abstraction layer for interfacing with SQL databases.
 
 ### Supported Databases:
