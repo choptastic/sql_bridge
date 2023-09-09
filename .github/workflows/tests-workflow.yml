@@ -1,4 +1,4 @@
-name: Test SQL Bridge MySQL/PostgreSQL
+name: SQL Bridge Tests & Dialyzer
 on: push
 
 jobs:
