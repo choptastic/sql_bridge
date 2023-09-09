@@ -15,9 +15,9 @@
 * Fixed a crash in the `epgsql` driver (Issue #10) (Thanks @th31nitiate!)
 * The above work ensures that sql_bridge is now fully hex compliant and
   available in [hex.pm](https://hex.pm/packages/sql_bridge).
-* Fix a big transaction bug in the mysql-otp bridge. Embarrassingly,
-  transactions mostly weren't working for MySQL.
-* Fix all dialyzer errors.
+* Fix a big transaction bug in the mysql-otp bridge where transactions were
+  mostly unreliable.
+* Fix all dialyzer errors
 * Added Github CI testing
 
 ## 0.6.1
