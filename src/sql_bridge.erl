@@ -132,10 +132,16 @@ db(DB) ->
 % @doc starts the actual database driver, if necessary
 start() ->
     {ok, _} = application:ensure_all_started(sql_bridge),
-    ok = sql_bridge_alias:build_stringify(?STRINGIFY), 
-    ok = sql_bridge_alias:build(?ALIAS),
+    build_stringify(),
+    build_alias(),
     ok = ?ADAPTER:start(),
     ok.
+
+build_stringify() ->
+    ok = sql_bridge_alias:build_stringify(?STRINGIFY).
+
+build_alias() ->
+    ok = sql_bridge_alias:build(?ALIAS).
 
 -spec connect() -> db().
 % @doc establishes a connection to the appropriate database.
@@ -473,7 +479,7 @@ fr(Q,ParamList) ->
 fr(Q) ->
     fr(Q,[]).
 
--spec fffr(Q :: sql(), ParamList :: [value()]) -> string() | integer() | not_found.
+-spec fffr(Q :: sql(), ParamList :: [value()]) -> value() | not_found.
 %% @doc Get First Field of First record
 fffr(Q,ParamList) ->
     case fr(Q,ParamList) of
@@ -481,16 +487,16 @@ fffr(Q,ParamList) ->
         [First|_] -> First
     end.
 
--spec fffr(Q :: sql()) -> string() | integer() | not_found.
+-spec fffr(Q :: sql()) -> value() | not_found.
 fffr(Q) ->
     fffr(Q,[]).
 
 %% First Field List
--spec ffl(Q :: sql(), ParamList :: [value()]) -> [string() | integer()].
+-spec ffl(Q :: sql(), ParamList :: [value()]) -> [value()].
 ffl(Q,ParamList) ->
     [First || [First | _ ] <- q(Q,ParamList)].
 
--spec ffl(Q :: sql()) -> [string() | integer()].
+-spec ffl(Q :: sql()) -> [value()].
 ffl(Q) ->
     ffl(Q,[]).
 
@@ -638,7 +644,7 @@ encode64(Data) ->
     binary_to_list(b64fast:encode64(term_to_binary(Data))).
     %base64:encode_to_string(term_to_binary(Data)).
 
--spec decode64(T :: any()) -> string().
+-spec decode64(T :: any()) -> term().
 %% @doc Decodes a base64 string into the relevant erlang term.
 decode64("") -> "";
 decode64(undefined) -> "";

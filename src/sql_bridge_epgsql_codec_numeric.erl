@@ -21,5 +21,5 @@ decode(Data, Type, State) ->
         _ -> binary_to_float(decimal_conv:to_binary(Decimal, #{pretty=>false}))
     end.
 
-decode_text(Data, Type, State) ->
-    ?MAIN_MOD:decode_text(Data, Type, State).
+decode_text(Data, _Type, _State) ->
+    Data.

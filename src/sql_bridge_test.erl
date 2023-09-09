@@ -3,6 +3,10 @@
 -include_lib("eunit/include/eunit.hrl").
 -compile(export_all).
 
+%% This is just a shortcut to prevent dialyzer throwing errors for the
+%% dynamically generated `db` module.
+-define(DB, sql_bridge).
+
 -define(P(X), (sql_bridge_utils:create_placeholder(X))).
 -define(P1, ?P(1)).
 -define(P2, ?P(2)).
@@ -62,7 +66,7 @@ gen_setup(Adapter, ReplacementType, Host, Port) ->
     application:set_env(sql_bridge, replacement_token_style, ReplacementType),
     application:set_env(sql_bridge, stringify_binaries, true),
     sql_bridge:start(),
-    db:q("delete from fruit").
+    ?DB:q("delete from fruit").
 
 
 epgsql_cleanup(_) ->
@@ -99,8 +103,8 @@ trans_tests(_) ->
                     ?_assertNot(test_trans(LookupPid, 70, rollback))
                 ]}
             ]},
-            ?_assertEqual(12, db:fffr("select count(*) from fruit")),
-            ?_assertEqual(12, db:fffr(["select count(*) from fruit where quantity in (",db:encode_list([1,2,3,4,5,6,7,8,9,10,11,12]),")"]))
+            ?_assertEqual(12, ?DB:fffr("select count(*) from fruit")),
+            ?_assertEqual(12, ?DB:fffr(["select count(*) from fruit where quantity in (",?DB:encode_list([1,2,3,4,5,6,7,8,9,10,11,12]),")"]))
         ]}
     ].
 
@@ -149,7 +153,7 @@ test_trans(LookupPid, Quantity) ->
 test_trans(LookupPid, Quantity, CommitOrRollback) ->
     FruitName = "Fruit-" ++ integer_to_list(Quantity),
     SleepModifier = Quantity * 10,
-    _AddedFruitid = db:trans(fun() ->
+    _AddedFruitid = ?DB:trans(fun() ->
         FirstSleep = 1000 - SleepModifier,
         SecondSleep = 1500 + SleepModifier,
         ThirdSleep = 2000,
@@ -157,15 +161,15 @@ test_trans(LookupPid, Quantity, CommitOrRollback) ->
         ?TRANS_STATUS("Transaction Started. Sleeping for ~pms", [FirstSleep]),
         timer:sleep(FirstSleep),
         ?TRANS_STATUS("Woke up. Verifying fruit table is empty"),
-        0=db:fffr("select count(*) from fruit"),
+        0=?DB:fffr("select count(*) from fruit"),
         ?TRANS_STATUS("Inserting ~s", [FruitName]),
-        Fruitid = db:qi(["insert into fruit(fruit, quantity) values(",?P1,",",?P2,")"], [FruitName, Quantity]),
+        Fruitid = ?DB:qi(["insert into fruit(fruit, quantity) values(",?P1,",",?P2,")"], [FruitName, Quantity]),
         ?TRANS_STATUS("Inserted (fruitid=~p). Registering with tracker process",[Fruitid]),
         register_fruitid(LookupPid, Fruitid),
         ?TRANS_STATUS("Registered. Verifying that Friutid=~p exists in transaction.", [Fruitid]),
-        true=db:exists(fruit, Fruitid),
+        true=?DB:exists(fruit, Fruitid),
         ?TRANS_STATUS("fruitid=~p exists. Counting records in table (should only be 1)", [Fruitid]),
-        1=db:fffr("select count(*) from fruit"),
+        1=?DB:fffr("select count(*) from fruit"),
         ?TRANS_STATUS("Verified. Sleeping for ~pms", [SecondSleep]),
         timer:sleep(SecondSleep),
         ?TRANS_STATUS("Woke up. Getting a random other fruit that was inserted in another transaction."),
@@ -174,7 +178,7 @@ test_trans(LookupPid, Quantity, CommitOrRollback) ->
         true=is_integer(OtherTranFruitid),
         true=(Fruitid=/=OtherTranFruitid),
         ?TRANS_STATUS("Verified. Verifying that fruitid=~p does not yet exists in this transaction.",[OtherTranFruitid]),
-        false=db:exists(fruit, OtherTranFruitid),
+        false=?DB:exists(fruit, OtherTranFruitid),
         ?TRANS_STATUS("Verified. Sleeping for ~pms.",[ThirdSleep]),
         timer:sleep(ThirdSleep),
         ?TRANS_STATUS("Woke up. Now checking if we should crash or return."),
@@ -183,7 +187,7 @@ test_trans(LookupPid, Quantity, CommitOrRollback) ->
         commit=CommitOrRollback,
         Fruitid
     end),
-    db:qexists(["select * from fruit where quantity=",?P1], [Quantity]).
+    ?DB:qexists(["select * from fruit where quantity=",?P1], [Quantity]).
 
 %sleep_random(Min, Max) ->
 %    Time = crypto:rand_uniform(Min, Max),
@@ -199,50 +203,50 @@ trans_status(StartTime, Tag, Msg, Args) ->
 
 main_tests(_) ->
     [
-     ?_assertEqual([], db:q("select * from fruit")),
-     ?_assertEqual([], db:tq("select * from fruit")),
-     ?_assertEqual([], db:dq("select * from fruit")),
-     ?_assertEqual([], db:mq("select * from fruit")),
-     ?_assertEqual([], db:plq("select * from fruit")),
-     ?_assertEqual(not_found, db:fr("select * from fruit")),
-     ?_assertEqual(not_found, db:tfr("select * from fruit")),
-     ?_assertEqual(not_found, db:mfr("select * from fruit")),
-     ?_assertEqual(not_found, db:plfr("select * from fruit")),
-     ?_assertEqual(not_found, db:dfr("select * from fruit")),
+     ?_assertEqual([], ?DB:q("select * from fruit")),
+     ?_assertEqual([], ?DB:tq("select * from fruit")),
+     ?_assertEqual([], ?DB:dq("select * from fruit")),
+     ?_assertEqual([], ?DB:mq("select * from fruit")),
+     ?_assertEqual([], ?DB:plq("select * from fruit")),
+     ?_assertEqual(not_found, ?DB:fr("select * from fruit")),
+     ?_assertEqual(not_found, ?DB:tfr("select * from fruit")),
+     ?_assertEqual(not_found, ?DB:mfr("select * from fruit")),
+     ?_assertEqual(not_found, ?DB:plfr("select * from fruit")),
+     ?_assertEqual(not_found, ?DB:dfr("select * from fruit")),
 
-     ?_assertMatch([fruitid, fruit, description, quantity, picture, some_float], db:table_fields(fruit)),
-     ?_assert(is_integer(db:qi(["insert into fruit(fruit, quantity, some_float) values(", ?P1, ",", ?P2, ",", ?P3,")"], ["apple", 5, 10.1]))),
-     ?_assertEqual(undefined, db:fffr("select description from fruit where fruit='apple'")),
-     ?_assertEqual(5, db:fffr(["select quantity from fruit where fruit=",?P1 ], [apple])),
-     ?_assertEqual("apple", db:fffr(["select fruit from fruit where quantity=", ?P1], [5])),
-     ?_assertEqual("apple", db:fffr(["select fruit from fruit where quantity=", ?P1], ["5"])),
-     ?_assertEqual("apple", db:fffr(["select fruit from fruit where quantity=", ?P1], [<<"5">>])),
-     ?_assert(is_integer(db:pl(fruit, [{fruitid, 0}, {fruit, <<"banana">>}, {quantity, 100}, {description, "long and yellow"}, {some_float, 6.1}]))),
-     ?_assert(is_float(db:fffr("select sum(some_float) from fruit"))),
-     ?_assertMatch("long and yellow", db:field(fruit, description, fruit, "banana")),
+     ?_assertMatch([fruitid, fruit, description, quantity, picture, some_float], ?DB:table_fields(fruit)),
+     ?_assert(is_integer(?DB:qi(["insert into fruit(fruit, quantity, some_float) values(", ?P1, ",", ?P2, ",", ?P3,")"], ["apple", 5, 10.1]))),
+     ?_assertEqual(undefined, ?DB:fffr("select description from fruit where fruit='apple'")),
+     ?_assertEqual(5, ?DB:fffr(["select quantity from fruit where fruit=",?P1 ], [apple])),
+     ?_assertEqual("apple", ?DB:fffr(["select fruit from fruit where quantity=", ?P1], [5])),
+     ?_assertEqual("apple", ?DB:fffr(["select fruit from fruit where quantity=", ?P1], ["5"])),
+     ?_assertEqual("apple", ?DB:fffr(["select fruit from fruit where quantity=", ?P1], [<<"5">>])),
+     ?_assert(is_integer(?DB:pl(fruit, [{fruitid, 0}, {fruit, <<"banana">>}, {quantity, 100}, {description, "long and yellow"}, {some_float, 6.1}]))),
+     ?_assert(is_float(?DB:fffr("select sum(some_float) from fruit"))),
+     ?_assertMatch("long and yellow", ?DB:field(fruit, description, fruit, "banana")),
 
-     ?_assertEqual([["apple", 5], ["banana", 100]], db:q("select fruit, quantity from fruit order by fruit")),
-     ?_assertEqual(["apple", 5], db:fr("select fruit, quantity from fruit order by fruit")),
+     ?_assertEqual([["apple", 5], ["banana", 100]], ?DB:q("select fruit, quantity from fruit order by fruit")),
+     ?_assertEqual(["apple", 5], ?DB:fr("select fruit, quantity from fruit order by fruit")),
 
-     ?_assertEqual([{"apple", 5}, {"banana", 100}], db:tq("select fruit, quantity from fruit order by fruit")),
-     ?_assertEqual({"apple", 5}, db:tfr("select fruit, quantity from fruit order by fruit")),
+     ?_assertEqual([{"apple", 5}, {"banana", 100}], ?DB:tq("select fruit, quantity from fruit order by fruit")),
+     ?_assertEqual({"apple", 5}, ?DB:tfr("select fruit, quantity from fruit order by fruit")),
 
-     ?_assertEqual([[{fruit, "apple"}, {quantity, 5}], [{fruit, "banana"}, {quantity, 100}]], db:plq("select fruit, quantity from fruit order by fruit")),
-     ?_assertEqual([{fruit, "apple"}, {quantity, 5}], db:plfr("select fruit, quantity from fruit order by fruit")),
+     ?_assertEqual([[{fruit, "apple"}, {quantity, 5}], [{fruit, "banana"}, {quantity, 100}]], ?DB:plq("select fruit, quantity from fruit order by fruit")),
+     ?_assertEqual([{fruit, "apple"}, {quantity, 5}], ?DB:plfr("select fruit, quantity from fruit order by fruit")),
 
-     ?_assertEqual("apple", dict:fetch(fruit, db:dfr("select fruit, quantity from fruit order by fruit"))),
+     ?_assertEqual("apple", dict:fetch(fruit, ?DB:dfr("select fruit, quantity from fruit order by fruit"))),
 
-     ?_assertEqual([#{fruit=>"apple", quantity=>5}, #{fruit=>"banana", quantity=>100}], db:mq("select fruit, quantity from fruit order by fruit")),
-     ?_assertEqual(#{fruit=>"apple", quantity=>5},  db:mfr("select fruit, quantity from fruit order by fruit")),
-     ?_assertEqual(["apple", "banana"], db:ffl("select fruit from fruit order by fruit")),
-     ?_assert(db:qexists(["select * from fruit where fruit=",?P1], [banana])),
-     ?_assert(db:qexists(["select * from fruit where fruit=",?P1], ["apple"])),
-     ?_assertNot(db:qexists(["select * from fruit where fruit=",?P1], [<<"watermelon">>])),
+     ?_assertEqual([#{fruit=>"apple", quantity=>5}, #{fruit=>"banana", quantity=>100}], ?DB:mq("select fruit, quantity from fruit order by fruit")),
+     ?_assertEqual(#{fruit=>"apple", quantity=>5},  ?DB:mfr("select fruit, quantity from fruit order by fruit")),
+     ?_assertEqual(["apple", "banana"], ?DB:ffl("select fruit from fruit order by fruit")),
+     ?_assert(?DB:qexists(["select * from fruit where fruit=",?P1], [banana])),
+     ?_assert(?DB:qexists(["select * from fruit where fruit=",?P1], ["apple"])),
+     ?_assertNot(?DB:qexists(["select * from fruit where fruit=",?P1], [<<"watermelon">>])),
      ?_assertEqual(#{fruit=>"orange", quantity=>5, description=>"oranges are orange"}, update_apple_to_orange()),
      ?_assertEqual("berry", test_insert_id()),
-     ?_assertEqual(1, db:delete(fruit, fruit, "orange")),
+     ?_assertEqual(1, ?DB:delete(fruit, fruit, "orange")),
      ?_assert(test_exists("banana")),
-     ?_assertNot(db:exists(fruit, fruit, "banana-fake")),
+     ?_assertNot(?DB:exists(fruit, fruit, "banana-fake")),
      ?_assertNot(test_id_delete()),
      ?_assert(test_string("ﻦﺤﻧ ﺫﺎﻬﺑﻮﻧ ﻒﻳ ﺡﺎﺟﺓ ﺈﻟﻯ ﻕﺍﺮﺑ ﺄﻜﺑﺭ")),
      ?_assert(test_string("我们将需要更大的船")),
@@ -252,10 +256,10 @@ main_tests(_) ->
      ?_assert(test_string("testy'pants")),
      ?_assert(test_string("'+\"!@#$%^&*()\\//\\//';[]<>./-=-=+")),
      ?_assert(test_encode_list(["'+\"", "!@#$'^&%", "//\\//\\", "blah","123","-=--=-!+'\"'''''''''''''''''"])),
-     ?_assertEqual({some, crazy,"term"}, db:decode64(db:encode64({some, crazy,"term"}))),
-     ?_assertMatch([_, _], db:q("select * from fruit " ++ db:limit_clause(2, 1))),
-     ?_assertMatch([_, _], db:q("select * from fruit " ++ db:limit_clause(2, -1))),
-     ?_assertMatch([_], db:q("select * from fruit " ++ db:limit_clause(-123, 5))),
+     ?_assertEqual({some, crazy,"term"}, ?DB:decode64(?DB:encode64({some, crazy,"term"}))),
+     ?_assertMatch([_, _], ?DB:q("select * from fruit " ++ ?DB:limit_clause(2, 1))),
+     ?_assertMatch([_, _], ?DB:q("select * from fruit " ++ ?DB:limit_clause(2, -1))),
+     ?_assertMatch([_], ?DB:q("select * from fruit " ++ ?DB:limit_clause(-123, 5))),
      ?_assertEqual(1.1, test_float(1.1)),
      ?_assertEqual(12345.5, test_float(12345.5)),
      ?_assertEqual(12.5, test_decimal(12.5)),
@@ -278,50 +282,50 @@ test_datetime(V) ->
     test_in_out_other(my_datetime, V).
 
 test_null() ->
-    ID = db:pl(other, [{otherid, 0}, {my_decimal, 123.5}]),
-    db:field(other, my_date, ID).
+    ID = ?DB:pl(other, [{otherid, 0}, {my_decimal, 123.5}]),
+    ?DB:field(other, my_date, ID).
 
 test_in_out_other(Field, V) ->
-    ID = db:pl(other, [{Field, V}]),
-    db:field(other, Field, ID).
+    ID = ?DB:pl(other, [{Field, V}]),
+    ?DB:field(other, Field, ID).
 
 test_float(Val) ->
-    Fruitid = db:pl(fruit, [{some_float, Val}]),
-    db:field(fruit, some_float, Fruitid).
+    Fruitid = ?DB:pl(fruit, [{some_float, Val}]),
+    ?DB:field(fruit, some_float, Fruitid).
 
 update_apple_to_orange() ->
-    Fruitid = db:fffr(["Select fruitid from fruit where fruit=",?P1], ["apple"]),
+    Fruitid = ?DB:fffr(["Select fruitid from fruit where fruit=",?P1], ["apple"]),
     New = [
         {fruitid, Fruitid},
         {fruit, "orange"},
         {description, "oranges are orange"}
     ],
-    db:pl(fruit, New),
-    db:mfr(["Select fruit, quantity, description from fruit where fruitid=", ?P1], [Fruitid]).
+    ?DB:pl(fruit, New),
+    ?DB:mfr(["Select fruit, quantity, description from fruit where fruitid=", ?P1], [Fruitid]).
 
 test_insert_id() ->
-    Fruitid = db:qi("insert into fruit(fruit, quantity) values('berry', 200)"),
-    db:field(fruit, fruit, Fruitid).
+    Fruitid = ?DB:qi("insert into fruit(fruit, quantity) values('berry', 200)"),
+    ?DB:field(fruit, fruit, Fruitid).
 
 test_exists(Fruit) ->
-    Fruitid = db:fffr(["select fruitid from fruit where fruit=",?P1], [Fruit]),
-    db:exists(fruit, Fruitid).
+    Fruitid = ?DB:fffr(["select fruitid from fruit where fruit=",?P1], [Fruit]),
+    ?DB:exists(fruit, Fruitid).
 
 test_id_delete() ->
-    Fruitid = db:fffr(["select fruitid from fruit where fruit=",?P1], ["banana"]),
-    db:delete(fruit, Fruitid),
-    db:exists(fruit, Fruitid).
+    Fruitid = ?DB:fffr(["select fruitid from fruit where fruit=",?P1], ["banana"]),
+    ?DB:delete(fruit, Fruitid),
+    ?DB:exists(fruit, Fruitid).
 
 test_string(Str) ->
-    Fruitid = db:pl(fruit, [{fruitid, 0}, {fruit, "new"}, {description, Str}]),
-    Str == db:field(fruit, description, Fruitid).
+    Fruitid = ?DB:pl(fruit, [{fruitid, 0}, {fruit, "new"}, {description, Str}]),
+    Str == ?DB:field(fruit, description, Fruitid).
 
 test_encode_list(List) ->
     Fruitids = lists:map(fun(Fruit) ->
-        db:pl(fruit, [{fruit, Fruit}])
+        ?DB:pl(fruit, [{fruit, Fruit}])
     end, List),
-    Fruitids = db:ffl(["select fruitid from fruit where fruitid in (",db:encode_list(Fruitids),") order by fruitid"]),
-    Fruitids = db:ffl(["select fruitid from fruit where fruit in (", db:encode_list(List), ") order by fruitid"]),
+    Fruitids = ?DB:ffl(["select fruitid from fruit where fruitid in (",?DB:encode_list(Fruitids),") order by fruitid"]),
+    Fruitids = ?DB:ffl(["select fruitid from fruit where fruit in (", ?DB:encode_list(List), ") order by fruitid"]),
     true.
 
 
