@@ -2,7 +2,7 @@
 {application, sql_bridge,
     [
         {description, "A convenience layer for SQL databases"},
-        {vsn, "0.6.1"},
+        {vsn, "0.6.2"},
         {licenses, ["MIT"]},
         {links, [{"Github", "https://github.com/choptastic/sql_bridge"}]},
         {registered, []},
@@ -10,10 +10,12 @@
             kernel,
             stdlib
         ]},
-        {loaded_applications, [
+        {included_applications, [
             erlias,
             mysql,
-            epgsql
+            epgsql,
+            b64fast,
+            poolboy
         ]},
         {env, []},
         {mod, {sql_bridge_app, []}}
