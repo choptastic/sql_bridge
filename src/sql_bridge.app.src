@@ -15,7 +15,8 @@
             mysql,
             epgsql,
             b64fast,
-            poolboy
+            poolboy,
+            epgsql_decimal
         ]},
         {env, []},
         {mod, {sql_bridge_app, []}}
