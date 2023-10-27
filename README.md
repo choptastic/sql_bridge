@@ -485,6 +485,10 @@ There are a number of quirks to get comfortable with when using sql_bridge:
   * Numeric and Decimal types are returned as floats or integers. Again, this
     is because of some code I have that depends on it.
    
+## Change Log
+
+See [CHANGELOG.md](https://github.com/choptastic/sql_bridge/blob/master/LICENSE.md)
+
 ## TODO
 
   * Maybe Experiment with [record-based querys](https://github.com/choptastic/sql_bridge/issues/1)
@@ -492,7 +496,7 @@ There are a number of quirks to get comfortable with when using sql_bridge:
 
 ## About
 
-Copyright (c) 2013-2021 [Jesse Gumm](http://jessegumm.com)
+Copyright (c) 2013-2023 [Jesse Gumm](http://jessegumm.com)
 ([@jessegumm](http://twitter.com/jessegumm))
 
-[MIT License](https://github.com/choptastic/sql_bridge/blob/master/LICENSE)
+[MIT License](https://github.com/choptastic/sql_bridge/blob/master/LICENSE.md)
