@@ -13,6 +13,8 @@ case erlang:function_exported(rebar3, main, 1) of
             {erlias,  {git, "https://github.com/choptastic/erlias", {branch, master}}},
             {poolboy, {git, "https://github.com/devinus/poolboy", {branch, master}}},
             {epgsql,  {git, "https://github.com/epgsql/epgsql", {branch, master}}},
-            {mysql,   {git, "https://github.com/choptastic/mysql-otp", {branch, decimal_force_number}}}
+            {decimal, {git, "https://github.com/egobrain/erlang_decimal", {branch, master}}},
+            {epgsql_decimal,  {git, "https://github.com/egobrain/epgsql_decimal", {branch, master}}},
+            {mysql,   {git, "https://github.com/mysql-otp/mysql-otp", {branch, master}}}
         ]} | lists:keydelete(deps, 1, CONFIG)]
 end.
