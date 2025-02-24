@@ -11,7 +11,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-24.04
-            mysql: "mariadb-11.8"
+            mysql: "mariadb-11.7"
             pg: "17"
             otp_version: '27.x'
             rebar3_version: "3.24.0"
