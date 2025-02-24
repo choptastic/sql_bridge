@@ -71,7 +71,7 @@ jobs:
 
       # https://github.com/marketplace/actions/actions-setup-mysql
       - name: Install ${{ matrix.mysql }}
-        uses: shogo82148/actions-setup-mysql@v1.23.0
+        uses: shogo82148/actions-setup-mysql@v1.42.0
           #env:
           #  ImageOS: ubuntu20
         with:
