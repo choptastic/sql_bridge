@@ -487,7 +487,7 @@ There are a number of quirks to get comfortable with when using sql_bridge:
    
 ## Change Log
 
-See [CHANGELOG.md](https://github.com/choptastic/sql_bridge/blob/master/LICENSE.md)
+See [CHANGELOG.md](https://github.com/choptastic/sql_bridge/blob/master/CHANGELOG.md)
 
 ## TODO
 
@@ -496,7 +496,7 @@ See [CHANGELOG.md](https://github.com/choptastic/sql_bridge/blob/master/LICENSE.
 
 ## About
 
-Copyright (c) 2013-2023 [Jesse Gumm](http://jessegumm.com)
-([@jessegumm](http://twitter.com/jessegumm))
+Copyright (c) 2013-2025 [Jesse Gumm](http://jessegumm.com)
+([@gumm.io](https://bsky.app/profile/gumm.io))
 
 [MIT License](https://github.com/choptastic/sql_bridge/blob/master/LICENSE.md)
