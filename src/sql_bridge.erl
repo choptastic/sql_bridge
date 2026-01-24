@@ -134,6 +134,8 @@ start() ->
     {ok, _} = application:ensure_all_started(sql_bridge),
     build_stringify(),
     build_alias(),
+    %% This line is for uuid generation (if you're using the auto-generation)
+    quickrand:seed(),
     ok = ?ADAPTER:start(),
     ok.
 
@@ -197,7 +199,7 @@ save_record(Table, KeyField, Record, FieldMap) ->
 save_(Table,PropList) when is_atom(Table) ->
     save_(atom_to_list(Table),PropList);
 save_(Table,PropList) when is_list(Table) ->
-    KeyField = Table ++ "id",
+    KeyField = primary_key(Table),
     save_(Table,KeyField,PropList).
 
 save_(Table,KeyField,PropList) when is_atom(Table) ->
@@ -213,7 +215,22 @@ save_(Table,KeyField,PropList) when is_list(Table) ->
                   Zero == null;
                   Zero == "";
                   Zero == <<>> -> 
-            pli(Table,lists:keydelete(KeyField,1,PropList));
+
+            PropList2 = lists:keydelete(KeyField, 1, PropList),
+            case is_auto_increment(Table, KeyField) of
+                true ->
+                    %% if it's auto_increment, then the removed keyfield will be taken care of
+                    pli(Table,PropList2);
+                false ->
+                    %% if it's not auto_increment, then we will auto_increment
+                    %% based on the settings
+                    {DB, Table2} = table_and_db(Table),
+                    {AutoKeyMod, AutoKeyFun} = sql_bridge_utils:auto_increment_function(),
+                    KeyVal = AutoKeyMod:AutoKeyFun(DB, Table2),
+                    PropList3 = [{KeyField, KeyVal} | PropList2],
+                    pli(Table, PropList3),
+                    KeyVal
+                end;
         _ -> 
             plu(Table,KeyField,PropList)
     end.
@@ -326,12 +343,12 @@ pli(Table,InitPropList0) ->
     qi(SQL, Values).
 
 -spec plu(Table :: table(), PropList :: proplist_or_map()) -> affected_rows().
-%% @doc Updates a row from the proplist based on the key `Table ++ "id"` in the Table
+%% @doc Updates a row from the proplist based on the primary_key in the Table
 plu(Table,PropList) when is_atom(Table) ->
     plu(atom_to_list(Table),PropList);
 plu(Table,PropList0) ->
     PropList = ensure_proplist(PropList0),
-    KeyField = list_to_atom(Table ++ "id"),
+    KeyField = primary_key(Table),
     plu(Table,KeyField,PropList).
 
 -spec plu(Table :: table(), KeyField :: field(), PropList :: proplist()) -> affected_rows().
@@ -514,6 +531,10 @@ table_fields(Table0) ->
              <<" order by ordinal_position">>],
     [sql_bridge_utils:to_atom(F) || F <- ffl(SQL, [DB, Table])].
 
+table_and_db(Table) when is_atom(Table) ->
+    table_and_db(atom_to_list(Table));
+table_and_db(Table) when is_binary(Table) ->
+    table_and_db(binary_to_list(Table));
 table_and_db(Table) ->
     case string:tokens(Table, ".") of
         [DB, TableOnly] ->
@@ -525,6 +546,20 @@ table_and_db(Table) ->
 -spec fields(Table :: table()) -> [atom()].
 fields(Table) ->
     table_fields(Table).
+
+primary_key(Table0) ->
+    {DB, Table} = table_and_db(Table0),
+    case ?ADAPTER:primary_key(DB, Table) of
+        undefined -> list_to_atom(sql_bridge_utils:to_string(Table) ++ "id");
+        KeyField -> KeyField
+    end.
+
+is_auto_increment(Table0, Field) ->
+    {DB, Table} = table_and_db(Table0),
+    case ?ADAPTER:is_auto_increment(DB, Table, Field) of
+        undefined -> true;
+        Bool -> Bool
+    end.
 
 field_exists(Table0, Field) ->
     {DB, Table} = table_and_db(Table0),
@@ -557,7 +592,7 @@ qexists(Q,ParamList) ->
 exists(Table, IDValue) when is_atom(Table) ->
     exists(atom_to_list(Table), IDValue);
 exists(Table, IDValue) when is_list(Table) ->
-    exists(Table, Table ++ "id", IDValue).
+    exists(Table, primary_key(Table), IDValue).
 
 -spec exists(Table :: table(), KeyField :: field(), IDValue :: value()) -> boolean().
 %% @doc Returns true if Table has a record where KeyField = IDValue
@@ -583,18 +618,18 @@ field(Table,Field,IDField,IDValue) ->
     fffr(["select ",Field," from ",Table," where ",IDField,"= ",Token],[IDValue]).
 
 -spec field(Table :: table(), Field :: field(), Value :: value()) -> value() | not_found.
-%% @doc This does the same as above, but uses Table ++ "id" for the idfield
+%% @doc This does the same as above, but determines the primary_key
 field(Table,Field,IDValue) when is_atom(Table) ->
     field(atom_to_list(Table),Field,IDValue);
 field(Table,Field,IDValue) ->
-    field(Table,Field,Table ++ "id",IDValue).
+    field(Table,Field,primary_key(Table),IDValue).
 
 -spec delete(Table :: table(), ID :: value()) -> affected_rows().
-%% @doc Deletes rows from Table where the Table ++ "id" = ID
+%% @doc Deletes rows from Table where the primary_key = ID
 delete(Table,ID) when is_atom(Table) ->
     delete(atom_to_list(Table),ID);
 delete(Table,ID) when is_list(Table) ->
-    KeyField = Table ++ "id",
+    KeyField = primary_key(Table),
     delete(Table,KeyField,ID).
 
 -spec delete(Table :: table(), KeyField :: field(), ID :: value()) -> affected_rows().

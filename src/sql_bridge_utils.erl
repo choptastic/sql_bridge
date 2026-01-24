@@ -10,6 +10,7 @@
     q_prep/2,
     q_join/2,
     binary_to_string/1,
+    auto_increment_function/0,
     stringify_binaries/0,
     replacement_token/0 ,
     token_mysql_to_postgres/2,
@@ -36,6 +37,15 @@ replacement_token() ->
         '$' -> postgres;
         mysql -> mysql;
         '?' -> mysql
+    end.
+
+auto_increment_function() ->
+    case get_env(auto_increment_module_function, undefined) of
+        undefined ->
+            Backend = get_env(adapter, sql_bridge_mysql_otp),
+            {Backend, auto_increment};
+        MF = {_,_} ->
+            MF
     end.
 
 stringify_binaries() ->

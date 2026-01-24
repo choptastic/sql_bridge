@@ -11,7 +11,11 @@
 		 commit_transaction/1,
 		 rollback_transaction/1,
 		 with_transaction/2,
-         wrap_field/1
+         wrap_field/1,
+         primary_key/2,
+         is_auto_increment/3,
+         get_field_type/3,
+         autokey/2
 ]).
 
 start() ->
@@ -232,3 +236,15 @@ escape_binary(<<X/utf8, Rest/binary>>, Acc) ->
 escape_binary(<<>>, Acc) ->
 	Acc.
 
+
+primary_key(_DB, _Table) ->
+    undefined.
+
+is_auto_increment(_DB, _Table, _Field) ->
+    undefined.
+
+get_field_type(_DB, _Table, _Field) ->
+    undefined.
+
+autokey(_DB, _Table) ->
+    undefined.

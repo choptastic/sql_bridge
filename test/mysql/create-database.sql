@@ -21,3 +21,29 @@ create table other (
 	my_decimal decimal(6,2),
 	my_datetime datetime
 );
+
+--testing IDs that aren't tablename + 'id'
+drop table if exists other_auto;
+create table other_auto (
+    id int auto_increment primary key,
+    some_text text
+);
+
+--testing IDs that don't auto_increment
+drop table if exists other_int;
+create table other_int (
+    id int unsigned primary key,
+    some_text text
+);
+
+drop table if exists other_string;
+create table other_string (
+    id varchar(25) primary key,
+    some_text text
+);
+
+drop table if exists other_uuid;
+create table other_uuid (
+    id uuid primary key,
+    some_text text
+);

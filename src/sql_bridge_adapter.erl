@@ -15,3 +15,14 @@
 -callback schema_db_column() -> ColumnName :: string().
 
 -callback encode(V :: any()) -> binary().
+
+-callback primary_key(DB :: sql_bridge:db(),
+                      Table :: sql_bridge:table()) -> sql_bridge:field().
+
+-callback get_field_type(DB :: sql_bridge:db(),
+                         Table :: sql_bridge:table(),
+                         Field :: sql_bridge:field()) -> undefined | {sql_bridge:field_type(), sql_bridge:field_details()}.
+
+-callback is_auto_increment(DB :: sql_bridge:db(),
+                            Table :: sql_bridge:table(),
+                            Field :: sql_bridge:field()) -> boolean().

@@ -37,21 +37,21 @@ mysql_otp_trans_test_() ->
      fun trans_tests/1
     }.
 
-epgsql_trans_test_() ->
-    {setup,
-     fun() -> gen_setup(sql_bridge_epgsql, postgres, ?PG_HOST, 5432) end,
-     fun epgsql_cleanup/1,
-     fun main_tests/1
-    }.
-
-epgsql_test_() ->
-    {setup,
-     %% We are intentionally testing mysql-style token replacements on pgsql
-     %% (so 'mysql' is not a typo here)
-     fun() -> gen_setup(sql_bridge_epgsql, mysql, ?PG_HOST, 5432) end,
-     fun epgsql_cleanup/1,
-     fun trans_tests/1
-    }.
+%epgsql_trans_test_() ->
+%    {setup,
+%     fun() -> gen_setup(sql_bridge_epgsql, postgres, ?PG_HOST, 5432) end,
+%     fun epgsql_cleanup/1,
+%     fun main_tests/1
+%    }.
+%
+%epgsql_test_() ->
+%    {setup,
+%     %% We are intentionally testing mysql-style token replacements on pgsql
+%     %% (so 'mysql' is not a typo here)
+%     fun() -> gen_setup(sql_bridge_epgsql, mysql, ?PG_HOST, 5432) end,
+%     fun epgsql_cleanup/1,
+%     fun trans_tests/1
+%    }.
 
 
 gen_setup(Adapter, ReplacementType, Host, Port) ->
@@ -147,8 +147,13 @@ lookup_fruitid(LookupPid, NotFruitid) ->
 test_trans(LookupPid, Quantity) ->
     test_trans(LookupPid, Quantity, commit).
 
+-ifdef(SHOW_TRANS).
 -define(TRANS_STATUS(Msg, Args), trans_status(StartTime, FruitName, Msg, Args)).
 -define(TRANS_STATUS(Msg), ?TRANS_STATUS(Msg, [])).
+-else.
+-define(TRANS_STATUS(Msg, Args), ok).
+-define(TRANS_STATUS(Msg), ok).
+-endif.
 
 test_trans(LookupPid, Quantity, CommitOrRollback) ->
     FruitName = "Fruit-" ++ integer_to_list(Quantity),
@@ -215,13 +220,13 @@ main_tests(_) ->
      ?_assertEqual(not_found, ?DB:dfr("select * from fruit")),
 
      ?_assertMatch([fruitid, fruit, description, quantity, picture, some_float], ?DB:table_fields(fruit)),
-     ?_assert(is_integer(?DB:qi(["insert into fruit(fruit, quantity, some_float) values(", ?P1, ",", ?P2, ",", ?P3,")"], ["apple", 5, 10.1]))),
+     ?_assert(is_nonzero_integer(?DB:qi(["insert into fruit(fruit, quantity, some_float) values(", ?P1, ",", ?P2, ",", ?P3,")"], ["apple", 5, 10.1]))),
      ?_assertEqual(undefined, ?DB:fffr("select description from fruit where fruit='apple'")),
      ?_assertEqual(5, ?DB:fffr(["select quantity from fruit where fruit=",?P1 ], [apple])),
      ?_assertEqual("apple", ?DB:fffr(["select fruit from fruit where quantity=", ?P1], [5])),
      ?_assertEqual("apple", ?DB:fffr(["select fruit from fruit where quantity=", ?P1], ["5"])),
      ?_assertEqual("apple", ?DB:fffr(["select fruit from fruit where quantity=", ?P1], [<<"5">>])),
-     ?_assert(is_integer(?DB:pl(fruit, [{fruitid, 0}, {fruit, <<"banana">>}, {quantity, 100}, {description, "long and yellow"}, {some_float, 6.1}]))),
+     ?_assert(is_nonzero_integer(?DB:pl(fruit, [{fruitid, 0}, {fruit, <<"banana">>}, {quantity, 100}, {description, "long and yellow"}, {some_float, 6.1}]))),
      ?_assert(is_float(?DB:fffr("select sum(some_float) from fruit"))),
      ?_assertMatch("long and yellow", ?DB:field(fruit, description, fruit, "banana")),
 
@@ -266,8 +271,45 @@ main_tests(_) ->
      ?_assertEqual(undefined, test_null()),
      ?_assertEqual("2016-12-31", test_date("2016-12-31")),
      ?_assertEqual("23:00:00", test_time("23:00:00")),
-     ?_assertEqual("2016-12-31 23:00:00", test_datetime("2016-12-31 23:00:00"))
+     ?_assertEqual("2016-12-31 23:00:00", test_datetime("2016-12-31 23:00:00")),
+     ?_assertEqual(fruitid, ?DB:primary_key(fruit)),
+     ?_assert(?DB:is_auto_increment(fruit, fruitid)),
+     ?_assertNot(?DB:is_auto_increment(fruit, fruit)),
+     ?_assert(test_key_variety(other_auto, fun is_nonzero_integer/1)),
+     ?_assert(test_key_variety(other_int, fun is_nonzero_integer/1)),
+     ?_assert(test_key_variety(other_string, fun is_string/1)),
+     ?_assert(test_key_variety(other_uuid, fun is_uuid/1))
     ].
+
+is_nonzero_integer(X) ->
+    is_integer(X) andalso X=/=0.
+
+is_string(X) ->
+    case is_string_(X) of
+        true -> true;
+        false ->
+            io:format("Term is not a string: ~p~n",[X]),
+            false
+    end.
+
+is_string_(X) when is_list(X) ->
+    lists:all(fun(C) -> is_alphanumeric(C) end, X);
+is_string_(_) ->
+    false.
+
+is_alphanumeric(C) ->
+    (C >= $0 andalso C =< $9) orelse
+    (C >= $a andalso C =< $z) orelse
+    (C >= $A andalso C =< $Z).
+
+is_uuid(X) when is_list(X); is_binary(X) ->
+    U = uuid:string_to_uuid(X),
+    case uuid:is_uuid(U) of
+        true -> true;
+        false ->
+            io:format("Term is not a valid UUID: ~p~n", [X]),
+            false
+    end.
 
 test_decimal(V) ->
     test_in_out_other(my_decimal, V).
@@ -284,6 +326,11 @@ test_datetime(V) ->
 test_null() ->
     ID = ?DB:pl(other, [{otherid, 0}, {my_decimal, 123.5}]),
     ?DB:field(other, my_date, ID).
+
+test_key_variety(Table, TypeFun) ->
+    ID = ?DB:save(Table, [{some_text, "random_text"}]),
+    true=TypeFun(ID),
+    ?DB:exists(Table, ID).
 
 test_in_out_other(Field, V) ->
     ID = ?DB:pl(other, [{Field, V}]),

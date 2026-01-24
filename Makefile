@@ -6,7 +6,7 @@ compile: rebar3
 	$(REBAR) compile
 
 run: rebar3
-	$(REBAR) shell --config sample.config
+	$(REBAR) as dev shell --config priv/sample.config --eval "sql_bridge:start(), sync:go()."
 
 test: rebar3 setup-all-tests
 	$(REBAR) eunit
