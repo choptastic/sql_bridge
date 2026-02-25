@@ -1,2 +1,3 @@
--define(LOG(Msg), sql_bridge_utils:log(Msg)).
--define(LOG(Msg, Args), sql_bridge_utils:log(Msg, Args)).
+-define(SQL_LOG(Msg), sql_bridge_utils:log(Msg)).
+-define(SQL_LOG(Msg, Args), sql_bridge_utils:log(Msg, Args)).
+-define(PH(X), sql_bridge_utils:create_placeholders(X)).

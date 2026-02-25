@@ -2,6 +2,7 @@
 -behaviour(sql_bridge_adapter).
 -include("compat.hrl").
 
+
 -export([start/0,
 		 connect/5,
 		 query/4,
@@ -14,7 +15,7 @@
          wrap_field/1,
          primary_key/2,
          is_auto_increment/3,
-         get_field_type/3,
+         field_type/3,
          autokey/2
 ]).
 
@@ -75,6 +76,7 @@ query_catched(Type, DB, Q, ParamList) ->
 	ToRun = fun(Worker) ->
 		%% calls sql_bridge_epgsql_worker:handle_call()
 		InnerRes = gen_server:call(Worker, {equery, Q2, ParamList2}),
+        %% TODO ,remove the lastval() thing - that's a mysql thing
 		case {Type, InnerRes} of
 			{insert, {ok, _Count}} ->
 				InsertRes = gen_server:call(Worker, {equery, <<"select lastval();">>, []}),
@@ -237,14 +239,69 @@ escape_binary(<<>>, Acc) ->
 	Acc.
 
 
-primary_key(_DB, _Table) ->
-    undefined.
+primary_key(DB, Table) ->
+    [T1, T2] = sql_bridge_utils:create_placeholders(2),
+    SQL = [<<"SELECT column_name
+            from information_schema.key_column_usage
+            where
+                table_catalog = ">>,T1,
+                <<" and table_name = ">>,T2],
+    case sql_bridge:ffl(SQL, [DB, Table]) of
+        [F] -> sql_bridge_utils:to_atom(F);
+        _ ->
+            undefined
+    end.
+        
 
-is_auto_increment(_DB, _Table, _Field) ->
-    undefined.
+is_auto_increment(DB, Table, Field) ->
+    [T1, T2, T3] = sql_bridge_utils:create_placeholders(3),
+    SQL = [<<"SELECT 
+            column_name,
+            data_type,
+            column_default,
+            is_identity,
+            identity_generation
+        FROM information_schema.columns 
+        WHERE table_catalog = ">>,T1,
+            <<" and table_name = ">>,T2,
+            <<" and column_name = ">>,T3,
+            <<" and (">>,
+                %% PGsql < 10
+                <<"column_default LIKE 'nextval%' ">>,
+                %%-- PGsql 10+
+                <<"OR is_identity = 'YES'">>,
+            <<");">>],
+    case sql_bridge:fffr(SQL, [DB, Table, Field]) of
+        not_found -> false;
+        _ -> true
+    end.
 
-get_field_type(_DB, _Table, _Field) ->
-    undefined.
+-spec field_type(sql_bridge:db(), sql_bridge:table(), sql_bridge:field()) -> sql_bridge:field_type().
+field_type(DB, Table, Field) ->
+    [T1, T2, T3] = sql_bridge_utils:create_placeholders(3),
+    SQL = [
+        <<"select udt_name, character_maximum_length
+          from information_schema.columns
+          where table_catalog=">>,T1,
+          <<" and table_name=">>,T2,
+          <<" and column_name=">>,T3
+    ],
+    Res = sql_bridge:tfr(SQL, [DB, Table, Field]),
+    io:format("Result: ~p~n",[Res]),
+    case Res of
+        {Type, Len} when Type=="varchar";
+                         Type=="bpchar";
+                         Type=="bytea";
+                         Type=="text" ->
+            {text, Len};
+        {Type, _} when Type=="int2";
+                       Type=="int4";
+                       Type=="int8" ->
+            AType = list_to_atom(Type),
+            {integer, sql_bridge_utils:int_ranges(AType)};
+        {Type, _} when Type=="uuid" ->
+            {uuid, undefined}
+    end.
 
 autokey(_DB, _Table) ->
     undefined.

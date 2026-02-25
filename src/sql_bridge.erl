@@ -33,6 +33,12 @@
 -type return_type() :: dict | list | proplist | tuple | insert | update | map.
 -type proplist_or_map() :: tuple() | proplist() | map().
 
+-type string_length() :: integer().
+-type integer_range() :: {integer(), integer()}.
+-type field_type() ::   {uuid, undefined} |
+                        {text, string_length()} |
+                        {integer, integer_range()}.
+
 -export_type([
     sql/0,
     db/0,
@@ -43,7 +49,8 @@
     affected_rows/0,
     proplist/0,
     return_type/0,
-    return_value/0
+    return_value/0,
+    field_type/0
 ]).
 
 %% New API aliases
@@ -224,9 +231,9 @@ save_(Table,KeyField,PropList) when is_list(Table) ->
                 false ->
                     %% if it's not auto_increment, then we will auto_increment
                     %% based on the settings
-                    {DB, Table2} = table_and_db(Table),
-                    {AutoKeyMod, AutoKeyFun} = sql_bridge_utils:auto_increment_function(),
-                    KeyVal = AutoKeyMod:AutoKeyFun(DB, Table2),
+                    {_DB, Table2} = table_and_db(Table),
+                    {AutoKeyMod, AutoKeyFun} = sql_bridge_utils:key_generator_function(),
+                    KeyVal = AutoKeyMod:AutoKeyFun(Table2, KeyField),
                     PropList3 = [{KeyField, KeyVal} | PropList2],
                     pli(Table, PropList3),
                     KeyVal
@@ -569,6 +576,12 @@ field_exists(Table0, Field) ->
              from information_schema.columns
              where ">>,DBCol,<<"=">>,T1,<<" and table_name=">>,T2,<<" and column_name=">>,T3],
     qexists(SQL, [DB, Table, Field]).
+
+
+-spec field_type(table(), field()) -> field_type().
+field_type(Table0, Field) ->
+    {DB, Table} = table_and_db(Table0),
+    ?ADAPTER:field_type(DB, Table, Field).
 
 -spec qexists(Q :: sql()) -> boolean().
 %% @doc Existance query, just returns true if the query Q returns anything

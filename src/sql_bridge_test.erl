@@ -37,21 +37,21 @@ mysql_otp_trans_test_() ->
      fun trans_tests/1
     }.
 
-%epgsql_trans_test_() ->
-%    {setup,
-%     fun() -> gen_setup(sql_bridge_epgsql, postgres, ?PG_HOST, 5432) end,
-%     fun epgsql_cleanup/1,
-%     fun main_tests/1
-%    }.
-%
-%epgsql_test_() ->
-%    {setup,
-%     %% We are intentionally testing mysql-style token replacements on pgsql
-%     %% (so 'mysql' is not a typo here)
-%     fun() -> gen_setup(sql_bridge_epgsql, mysql, ?PG_HOST, 5432) end,
-%     fun epgsql_cleanup/1,
-%     fun trans_tests/1
-%    }.
+epgsql_trans_test_() ->
+    {setup,
+     fun() -> gen_setup(sql_bridge_epgsql, postgres, ?PG_HOST, 5432) end,
+     fun epgsql_cleanup/1,
+     fun main_tests/1
+    }.
+
+epgsql_test_() ->
+    {setup,
+     %% We are intentionally testing mysql-style token replacements on pgsql
+     %% (so 'mysql' is not a typo here)
+     fun() -> gen_setup(sql_bridge_epgsql, mysql, ?PG_HOST, 5432) end,
+     fun epgsql_cleanup/1,
+     fun trans_tests/1
+    }.
 
 
 gen_setup(Adapter, ReplacementType, Host, Port) ->

@@ -15,8 +15,8 @@
          primary_key/2,
          is_auto_increment/3,
          %primary_key_with_auto_increment_and_type/2,
-         auto_increment/2,
-         get_field_type/3,
+         %auto_increment/2,
+         field_type/3,
          maybe_replace_tokens/2
         ]).
 
@@ -255,56 +255,50 @@ encode(Val) ->
 %        _ -> undefined
 %    end.
 
-auto_increment(DB, Table) ->
-    Field = primary_key(DB, Table),
-    io:format("Primary Key: ~p -> ~p~n", [Table, Field]),
-    ID = case get_field_type(DB, Table, Field) of
-        {uuid, _} ->
-            auto_increment_uuid();
-        {text, MaxLength} ->
-            auto_increment_string(MaxLength);
-        {integer, {Min, Max}} ->
-            auto_increment_integer(Min, Max)
-    end,
-    io:format("Auto-Generated ID: ~p~n",[ID]),
-    FullTable = sql_bridge_utils:to_string(DB) ++ "." ++ sql_bridge_utils:to_string(Table),
-    case sql_bridge:exists(FullTable, Field, ID) of
-        true -> auto_increment(DB, Table);
-        false -> ID
-    end.
+%%auto_increment(DB, Table) ->
+%%    Field = primary_key(DB, Table),
+%%    io:format("Primary Key: ~p -> ~p~n", [Table, Field]),
+%%    ID = case get_field_type(DB, Table, Field) of
+%%        {uuid, _} ->
+%%            auto_increment_uuid();
+%%        {text, MaxLength} ->
+%%            auto_increment_string(MaxLength);
+%%        {integer, {Min, Max}} ->
+%%            auto_increment_integer(Min, Max)
+%%    end,
+%%    io:format("Auto-Generated ID: ~p~n",[ID]),
+%%    FullTable = sql_bridge_utils:to_string(DB) ++ "." ++ sql_bridge_utils:to_string(Table),
+%%    case sql_bridge:exists(FullTable, Field, ID) of
+%%        true -> auto_increment(DB, Table);
+%%        false -> ID
+%%    end.
+%%
+%%auto_increment_uuid() ->
+%%    uuid:uuid_to_string(uuid:get_v4_urandom()).
+%%
+%%auto_increment_string(MaxLength) ->
+%%    [rand_char() || _ <- lists:seq(1, MaxLength)].
+%%
+%%rand_char() ->
+%%    case rand:uniform(62) of
+%%        10 -> $0;
+%%        X when X < 10 ->
+%%            X + $0;
+%%        X when X =< 36 ->
+%%            X - 11 + $a;
+%%        X ->
+%%            X - 37 + $A
+%%    end.
+%%
+%%auto_increment_integer(Min, Max) ->
+%%    Diff = Max - Min,
+%%    rand:uniform(Diff) + Min.
 
-auto_increment_uuid() ->
-    uuid:uuid_to_string(uuid:get_v4_urandom()).
-
-auto_increment_string(MaxLength) ->
-    [rand_char() || _ <- lists:seq(1, MaxLength)].
-
-rand_char() ->
-    case rand:uniform(62) of
-        10 -> $0;
-        X when X < 10 ->
-            X + $0;
-        X when X =< 36 ->
-            X - 11 + $a;
-        X ->
-            X - 37 + $A
-    end.
-
-auto_increment_integer(Min, Max) ->
-    Diff = Max - Min,
-    rand:uniform(Diff) + Min.
-
-
--type field_type() :: text | uuid | integer.
--type string_length() :: integer().
--type integer_range() :: {integer(), integer()}.
--type field_details() :: undefined | string_length() | integer_range().
-
-
--spec get_field_type(DB :: sql_bridge:db(),
+-spec field_type(DB :: sql_bridge:db(),
                      Table :: sql_bridge:table(),
-                     Field :: sql_bridge:field()) -> undefined | {field_type(), field_details()}.
-get_field_type(DB, Table, Field) ->
+                     Field :: sql_bridge:field()) -> undefined | sql_bridge:field_type().
+
+field_type(DB, Table, Field) ->
     [T1, T2, T3] = sql_bridge_utils:create_placeholders(3),
     SQL = [<<"select column_type from information_schema.columns ">>,
            <<" where table_schema=">>, T1,
@@ -348,19 +342,20 @@ parse_field_type(FieldType) ->
     end.
 
 int_range(TypeUnsigned) ->
-    case TypeUnsigned of
-        {<<"tinyint">>, <<"unsigned">>} -> {0, 255};
-        {<<"smallint">>, <<"unsigned">>} -> {0, 65535};
-        {<<"mediumint">>, <<"unsigned">>} -> {0, 16777215};
-        {<<"int">>, <<"unsigned">>} -> {0, 4294967295};
-        {<<"bigint">>, <<"unsigned">>} -> {0, 18446744073709551615};
+    AType = case TypeUnsigned of
+        {<<"tinyint">>, <<"unsigned">>} -> uint1;
+        {<<"smallint">>, <<"unsigned">>} -> uint2;
+        {<<"mediumint">>, <<"unsigned">>} -> uint3;
+        {<<"int">>, <<"unsigned">>} -> uint4;
+        {<<"bigint">>, <<"unsigned">>} -> uint8;
 
-        {<<"tinyint">>, _} -> {-128, 127};
-        {<<"smallint">>, _} -> {-32768, 32767};
-        {<<"mediumint">>, _} -> {-8388608, 8388607};
-        {<<"int">>, _} -> {-2147483648, 2147483647};
-        {<<"bigint">>, _} -> {-9223372036854775808, 9223372036854775807}
-    end.
+        {<<"tinyint">>, _} -> int1;
+        {<<"smallint">>, _} -> int2;
+        {<<"mediumint">>, _} -> int3;
+        {<<"int">>, _} -> int4;
+        {<<"bigint">>, _} -> int8
+    end,
+    sql_bridge_utils:int_ranges(AType).
 
 
 primary_key(DB, Table) ->

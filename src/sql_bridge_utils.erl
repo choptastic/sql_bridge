@@ -10,7 +10,7 @@
     q_prep/2,
     q_join/2,
     binary_to_string/1,
-    auto_increment_function/0,
+    key_generator_function/0,
     stringify_binaries/0,
     replacement_token/0 ,
     token_mysql_to_postgres/2,
@@ -27,6 +27,7 @@
     record_to_proplist/2,
     proplist_to_record/3,
     format_datetime/1,
+    int_ranges/1,
     log/1,
     log/2
 ]).
@@ -39,11 +40,10 @@ replacement_token() ->
         '?' -> mysql
     end.
 
-auto_increment_function() ->
-    case get_env(auto_increment_module_function, undefined) of
+key_generator_function() ->
+    case get_env(key_generator_module_function, undefined) of
         undefined ->
-            Backend = get_env(adapter, sql_bridge_mysql_otp),
-            {Backend, auto_increment};
+            {sql_bridge_random_key_generator, generate};
         MF = {_,_} ->
             MF
     end.
@@ -371,6 +371,7 @@ to_bin_or_str(L) when is_list(L) ->
         false -> iolist_to_binary(L)
     end.
 
+
 log(Msg) ->
     log("~p", [Msg]).
 
@@ -382,3 +383,13 @@ log(Msg, Args) ->
     io:format("~s~ts~s", [PreSuf, Msg3, PreSuf]).
 
 
+int_ranges(uint1) -> {0, 255};
+int_ranges(uint2) -> {0, 65535};
+int_ranges(uint3) -> {0, 16777215};
+int_ranges(uint4) -> {0, 4294967295};
+int_ranges(uint8) -> {0, 18446744073709551615};
+int_ranges(int1) -> {-128, 127};
+int_ranges(int2) -> {-32768, 32767};
+int_ranges(int3) -> {-8388608, 8388607};
+int_ranges(int4) -> {-2147483648, 2147483647};
+int_ranges(int8) -> {-9223372036854775808, 9223372036854775807}.
