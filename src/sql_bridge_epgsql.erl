@@ -287,7 +287,7 @@ field_type(DB, Table, Field) ->
           <<" and column_name=">>,T3
     ],
     Res = sql_bridge:tfr(SQL, [DB, Table, Field]),
-    io:format("Result: ~p~n",[Res]),
+    %io:format("Result: ~p~n",[Res]),
     case Res of
         {Type, Len} when Type=="varchar";
                          Type=="bpchar";

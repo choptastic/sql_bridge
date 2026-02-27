@@ -579,6 +579,9 @@ field_exists(Table0, Field) ->
 
 
 -spec field_type(table(), field()) -> field_type().
+%% Note, this return value is not comprehensive currently, and only returns the
+%% data types for text, integer, and uuid (and for the text length, it only
+%% returns a max of 50)
 field_type(Table0, Field) ->
     {DB, Table} = table_and_db(Table0),
     ?ADAPTER:field_type(DB, Table, Field).
@@ -586,7 +589,7 @@ field_type(Table0, Field) ->
 -spec qexists(Q :: sql()) -> boolean().
 %% @doc Existance query, just returns true if the query Q returns anything
 %% other than an empty set.
-%% TODO: Check for "limit" clause and add? Or rely on user.
+%% TODO: Check for "limit" clause and or maybe just rely on user?
 qexists(Q) ->
     qexists(Q,[]).
 
