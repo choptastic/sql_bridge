@@ -21,7 +21,7 @@
 
 -callback field_type(DB :: sql_bridge:db(),
                          Table :: sql_bridge:table(),
-                         Field :: sql_bridge:field()) -> undefined | {sql_bridge:field_type(), sql_bridge:field_details()}.
+                         Field :: sql_bridge:field()) -> undefined | sql_bridge:field_type().
 
 -callback is_auto_increment(DB :: sql_bridge:db(),
                             Table :: sql_bridge:table(),
