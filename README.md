@@ -206,7 +206,7 @@ Sample PostgreSQL Placeholders:
 db:q("Select * from login where username=$1 or email=$2", [Loginid, Email])
 ```
 
-#### Key
+#### Key Determination
 
 For functions where raw SQL is not provided as an argument, SQL Bridge will
 determine the key field by the follwing:
@@ -461,7 +461,7 @@ Then, in your config, set the `record_handler` value as follows:
 
 Once this is done, you can pass a record as the `Data` argument in `db:save/2-3`
 
-### Delete
+###### Delete
 
 - `db:delete(Table, ID)`: Delete records from a table.
 
