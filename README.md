@@ -61,9 +61,9 @@ It can take two possible values:
   solution: Whatever value you assign to `lookup` will be the database
   SQL_Bridge uses.
 
-- A {Module, Function} or {Module, Function, Args} tuple. This is for
-  multi-database apps. The return value of Module:Function() or
-  `erlang:apply(Module, Function, Args)` will be ysed to determine which database
+- A `{Module, Function}` or `{Module, Function, Args}` tuple. This is for
+  multi-database apps. The return value of `Module:Function()` or
+  `erlang:apply(Module, Function, Args)` will be used to determine which database
   to connect to. This value will then be cached within the process dictionary so
   that that (potentially expensive) function isn't repeatedly called within the
   same process.
@@ -78,8 +78,6 @@ driver upon which it depends)
   Erlang PostgreSQL driver (also uses poolboy).
 - `sql_bridge_mysql_otp` - [mysql-otp](http://github.com/mysql-otp/mysql-otp) -
   A New MySQL driver (also uses poolboy).
-
-###
 
 ### Sample Config
 
@@ -186,7 +184,8 @@ implies. All is documented below.
 
 SQL_Bridge currently does not offer prepared statements, but will do safe
 variable replacement using a similar convention, either with MySQL's `?`
-placeholder, or PostgreSQL's `$1, $2,...$X` placeholder.
+placeholder, or PostgreSQL's `$1, $2,...$X` placeholder (see
+`replacement_token_style` in [Configuration](#configuration))
 
 ##### Replacement Placeholders
 
@@ -223,7 +222,7 @@ we're updating or inserting a new one (e.g. `db:save`). The basic rule is this:
 If the primary key field specified has a value of `0` or `undefined` (or
 entirely left off), the call will be an `insert` operation, relying on either
 the RDBMS's key generation (`auto_increment`, etc), or fall back to SQL
-Bridge's [`Key Generation`](#key-generation) functionality.
+Bridge's [`Key Generation`](#key-generation-070) functionality.
 
 If the provided key for these functions is anything other than `undefined`,
 `0`, the operation is treated as an update.
@@ -236,8 +235,9 @@ Almost all query functions in SQL_Bridge take one or two parameters.
 
 - 1 Argument: the query will be executed as-is. (e.g. `db:q("select * from whatever")`)
 - 2 Arguments: Argument two should be a list of arguments that correspond to
-  and will replace question marks (`?`) within the query itself in order.
-  (e.g. `db:q("select * from whatever where field1=? or field1=?", [SomeValue, SomeOtherValue])`)
+  and will replace question marks (`?` or `$X` - depending on your
+  [configuration](#configuration)) within the query itself in order. (e.g.
+  `db:q("select * from whatever where field1=? or field1=?", [SomeValue, SomeOtherValue])`)
 
 #### Table Structure for our examples
 
@@ -367,18 +367,18 @@ they only return a single row. They all start with `fr` for "first record"
 - `db:field_exists(Table, Field)` : Returns true if the specified `Table`
   contains the field called `Field`
 
-#### Insert, Update, Delete Queries
+##### Insert, Update, Delete Queries
 
-### Insert
+###### Insert
 
 - `db:qi` or `db:qinsert` Runs the specified query and returns the `insert_id`
 
-### Update
+###### Update
 
 - `db:qu` or `db:qupdate`: Run the specified query and returns the number of
   affected rows.
 
-### Update or Delete from a Proplist, Map, or Record
+###### Update or Delete from a Proplist, Map, or Record
 
 - `db:save(Table, Keyfield, Data)`: Run an update or insert query on the
   Table provided with the specified Data as the row data. `Data` can be
@@ -402,7 +402,7 @@ they only return a single row. They all start with `fr` for "first record"
   exactly as it is, so if the key field has a value of `0`, that's the value that
   will be inserted.
 
-#### Backwards Compatibility
+###### Backwards Compatibility
 
 For backwards compatibility, the following functions are kept as aliases of the above:
 
@@ -410,7 +410,7 @@ For backwards compatibility, the following functions are kept as aliases of the 
 - `db:plu` = `db:update`
 - `db:pli`= `db:insert`
 
-#### Working with Records
+###### Working with Records
 
 SQL_Bridge can work with records, however, since records are done at compile
 time, there are some additional steps that must be performed by you in order to
@@ -426,7 +426,7 @@ accomplish this. The simplest is to use the `save_record()` functions:
 - `db:save_record(Table, Record, FieldList`: Like `db:save/2`, this will
   automatically determine the KeyField as `list_to_atom(atom_to_list(Table) ++ "id")`.
 
-#### Using a Record Handler
+###### Using a Record Handler
 
 SQL_Bridge also has an option to intelligently convert records into a format
 SQL_Bridge can work with (namely, proplists and maps). You can do this by use a
