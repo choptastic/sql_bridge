@@ -5,14 +5,17 @@
   @choptastic's fork).  This requires
   [new functionality](https://github.com/mysql-otp/mysql-otp/pull/194) in
   mysql-otp.
-* The epgsql bridge now relies on mainline [epgsql]( (rather than @choptastic's
+* The epgsql bridge now relies on mainline
+  [epgsql](https://github.com/epgsql/epgsql) (rather than @choptastic's
   fork). This ended up requiring migrating @choptastic's epgsql customizations
   to become epgsql [custom
   codecs](https://github.com/epgsql/epgsql/blob/devel/doc/pluggable_types.md)
   and [epgsql_decimal](https://github.com/egobrain/epgsql_decimal).
 * Fixed `epgsql`'s decoding of `decimal`/`numeric` types to return a float or
-  integer. (Fixes Issue #5)
-* Fixed a crash in the `epgsql` driver (Issue #10) (Thanks @th31nitiate!)
+  integer. (Fixes [Issue #5](https://github.com/choptastic/sql_bridge/issues/5))
+* Fixed a crash in the `epgsql` driver
+  ([Issue #10)](https://github.com/choptastic/sql_bridge/issues/10) (Thanks
+  @th31nitiate!)
 * The above work ensures that sql_bridge is now fully hex compliant and
   available in [hex.pm](https://hex.pm/packages/sql_bridge).
 * Fix a big transaction bug in the mysql-otp bridge where transactions were
