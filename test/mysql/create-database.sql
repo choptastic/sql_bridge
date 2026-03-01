@@ -19,7 +19,14 @@ create table other (
 	my_time time,
 	my_date date,
 	my_decimal decimal(6,2),
-	my_datetime datetime
+	my_datetime datetime,
+    si smallint,
+    bi bigint,
+    vc varchar(20),
+    c char(20),
+    --nvc nvarchar(20),
+    --nc nchar(20),
+    u uuid
 );
 
 --testing IDs that aren't tablename + 'id'
