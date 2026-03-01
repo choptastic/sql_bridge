@@ -15,8 +15,7 @@
          wrap_field/1,
          primary_key/2,
          is_auto_increment/3,
-         field_type/3,
-         autokey/2
+         field_type/3
 ]).
 
 start() ->
@@ -287,7 +286,7 @@ field_type(DB, Table, Field) ->
           <<" and column_name=">>,T3
     ],
     Res = sql_bridge:tfr(SQL, [DB, Table, Field]),
-    %io:format("Result: ~p~n",[Res]),
+    io:format("Postgres Field Type Result: (~p.~p.~p: ~p~n",[DB, Table, Field, Res]),
     case Res of
         {Type, Len} when Type=="varchar";
                          Type=="bpchar";
@@ -302,6 +301,3 @@ field_type(DB, Table, Field) ->
         {Type, _} when Type=="uuid" ->
             {uuid, undefined}
     end.
-
-autokey(_DB, _Table) ->
-    undefined.

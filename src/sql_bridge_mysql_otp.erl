@@ -305,7 +305,7 @@ field_type(DB, Table, Field) ->
            <<" and table_name=">>, T2,
            <<" and column_name=">>, T3],
     Res = sql_bridge:fffr(SQL, [DB, Table, Field]),
-    io:format("Field Type (~p, ~p, ~p): ~p~n", [DB, Table, Field, Res]),
+    io:format("MySQL - Field Type (~p, ~p, ~p): ~p~n", [DB, Table, Field, Res]),
     case Res of
         not_found ->
             undefined;
