@@ -23,8 +23,7 @@ create table other (
     si smallint,
     bi bigint,
     vc varchar(20),
-    c char(20),
-    u uuid
+    c char(20)
 );
 
 -- testing IDs that aren't tablename + 'id'
@@ -44,11 +43,5 @@ create table other_int (
 drop table if exists other_string;
 create table other_string (
     id varchar(25) primary key,
-    some_text text
-);
-
-drop table if exists other_uuid;
-create table other_uuid (
-    id uuid primary key,
     some_text text
 );

@@ -66,8 +66,33 @@ gen_setup(Adapter, ReplacementType, Host, Port) ->
     application:set_env(sql_bridge, replacement_token_style, ReplacementType),
     application:set_env(sql_bridge, stringify_binaries, true),
     sql_bridge:start(),
+    case Adapter of
+        sql_bridge_epgsql -> set_feature(uuid, true);
+        sql_bridge_mysql_otp -> check_mysql_feature(uuid)
+    end,
     ?DB:q("delete from fruit").
 
+check_mysql_feature(uuid) ->
+    Vsn = ?DB:fffr("select @@version"),
+    io:format("MySQL Version: ~p", [Vsn]),
+    Enabled = case re:run(Vsn, "mariadb", [caseless, {capture, none}]) of
+        match ->
+            io:format("UUID Support Enabled~n"),
+            true;
+        nomatch ->
+            io:format("UUID Tests Disabled~n"),
+            false
+    end,
+    set_feature(uuid, Enabled).
+
+set_feature(Feature, TF) ->
+    persistent_term:put({sql_bridge_feature, Feature}, TF).
+
+get_feature(Feature) ->
+    persistent_term:get({sql_bridge_feature, Feature}).
+
+get_feature_uuid() ->
+    get_feature(uuid).
 
 epgsql_cleanup(_) ->
     application:stop(epgsql),
@@ -206,6 +231,7 @@ trans_status(StartTime, Tag, Msg, Args) ->
     Msg2 = "(~p) Trans Update [Tag = ~p] (~pms Elapsed): " ++ Msg ++ "\n",
     logger:notice(Msg2, Args2).
 
+
 main_tests(_) ->
     [
      ?_assertEqual([], ?DB:q("select * from fruit")),
@@ -278,8 +304,10 @@ main_tests(_) ->
      ?_assert(test_key_variety(other_auto, fun is_nonzero_integer/1)),
      ?_assert(test_key_variety(other_int, fun is_nonzero_integer/1)),
      ?_assert(test_key_variety(other_string, fun is_string/1)),
-     ?_assert(test_key_variety(other_uuid, fun is_uuid/1))
+     ?_assert(maybe_test(fun get_feature_uuid/0, fun() -> test_key_variety(other_uuid, fun is_uuid/1) end))
     ].
+
+
 
 is_nonzero_integer(X) ->
     is_integer(X) andalso X=/=0.
@@ -326,6 +354,12 @@ test_datetime(V) ->
 test_null() ->
     ID = ?DB:pl(other, [{otherid, 0}, {my_decimal, 123.5}]),
     ?DB:field(other, my_date, ID).
+
+maybe_test(CondFun, TestFun) ->
+    case CondFun() of
+        true -> TestFun();
+        false -> true
+    end.
 
 test_key_variety(Table, TypeFun) ->
     ID = ?DB:save(Table, [{some_text, "random_text"}]),
