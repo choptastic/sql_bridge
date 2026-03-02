@@ -27,14 +27,14 @@ create table other (
     u uuid
 );
 
---testing IDs that aren't tablename + 'id'
+-- testing IDs that aren't tablename + 'id'
 drop table if exists other_auto;
 create table other_auto (
     id int auto_increment primary key,
     some_text text
 );
 
---testing IDs that don't auto_increment
+-- testing IDs that don't auto_increment
 drop table if exists other_int;
 create table other_int (
     id int unsigned primary key,
