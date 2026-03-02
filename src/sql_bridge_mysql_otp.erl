@@ -20,6 +20,7 @@
          maybe_replace_tokens/2
         ]).
 
+-export([parse_field_type/1]).
 %-export([maybe_replace_tokens/2]).
 
 
@@ -324,8 +325,8 @@ parse_field_type("uuid") ->
     {uuid, undefined};
 parse_field_type(FieldType) ->
     RETypes = "(tinyint|smallint|mediumint|int|bigint|varchar|char)",
-    RELength = "\\(([0-9]+)\\)",
-    REFollower = "(.*?)",
+    RELength = "(?:\\(([0-9]+)\\))?",
+    REFollower = "(signed|unsigned)?",
     RE = "^" ++ RETypes ++ "\\s*" ++ RELength ++ "\\s*" ++ REFollower ++ "$",
     case re:run(FieldType, RE, [{capture, all_but_first, binary}]) of
         {match, [Type, Length | _]} when Type == <<"varchar">>;
