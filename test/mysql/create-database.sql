@@ -24,8 +24,6 @@ create table other (
     bi bigint,
     vc varchar(20),
     c char(20),
-    --nvc nvarchar(20),
-    --nc nchar(20),
     u uuid
 );
 
