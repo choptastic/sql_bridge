@@ -75,10 +75,20 @@ gen_setup(Adapter, ReplacementType, Host, Port) ->
 check_mysql_feature(uuid) ->
     Vsn = ?DB:fffr("select @@version"),
     io:format("MySQL Version: ~p", [Vsn]),
-    Enabled = case re:run(Vsn, "mariadb", [caseless, {capture, none}]) of
-        match ->
-            io:format("UUID Support Enabled~n"),
-            true;
+
+    Enabled = case re:run(Vsn, "^(\\d+)\\.(\\d+)\\.(\\d+)-mariadb", [caseless, {capture, all_but_first, list}]) of
+        {match, [Maj, Min, Pat]} ->
+            Major = list_to_integer(Maj),
+            Minor = list_to_integer(Min),
+            Patch = list_to_integer(Pat),
+            case {Major, Minor, Patch} >= {10, 7, 0} of
+                true ->
+                    io:format("UUID Support Enabled~n"),
+                    true;
+                false ->
+                    io:format("UUID Support Disabled (10.7+ Required~n"),
+                    false
+            end;
         nomatch ->
             io:format("UUID Tests Disabled~n"),
             false
