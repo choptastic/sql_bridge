@@ -241,60 +241,6 @@ encode(Val) ->
         mysql:encode(Worker, Val)
     end).
 
-%primary_key_with_auto_increment_and_type(DB, Table) ->
-%    [T1, T2] = sql_bridge_utils:create_placeholders(2),
-%    SQL = [<<"select column_name
-%            from information_schema.columns
-%            where table_schema=">>,T1,
-%                <<" and table_name=">>,T2,
-%                <<" and column_key='PRI'
-%                and extra like '%auto_increment%'">>],
-%    Res = sql_bridge:list(SQL, [DB, Table]),
-%    %io:format("Res: ~p~n", [Res]),
-%    case Res of 
-%        [Field] -> list_to_atom(Field);
-%        _ -> undefined
-%    end.
-
-%%auto_increment(DB, Table) ->
-%%    Field = primary_key(DB, Table),
-%%    io:format("Primary Key: ~p -> ~p~n", [Table, Field]),
-%%    ID = case get_field_type(DB, Table, Field) of
-%%        {uuid, _} ->
-%%            auto_increment_uuid();
-%%        {text, MaxLength} ->
-%%            auto_increment_string(MaxLength);
-%%        {integer, {Min, Max}} ->
-%%            auto_increment_integer(Min, Max)
-%%    end,
-%%    io:format("Auto-Generated ID: ~p~n",[ID]),
-%%    FullTable = sql_bridge_utils:to_string(DB) ++ "." ++ sql_bridge_utils:to_string(Table),
-%%    case sql_bridge:exists(FullTable, Field, ID) of
-%%        true -> auto_increment(DB, Table);
-%%        false -> ID
-%%    end.
-%%
-%%auto_increment_uuid() ->
-%%    uuid:uuid_to_string(uuid:get_v4_urandom()).
-%%
-%%auto_increment_string(MaxLength) ->
-%%    [rand_char() || _ <- lists:seq(1, MaxLength)].
-%%
-%%rand_char() ->
-%%    case rand:uniform(62) of
-%%        10 -> $0;
-%%        X when X < 10 ->
-%%            X + $0;
-%%        X when X =< 36 ->
-%%            X - 11 + $a;
-%%        X ->
-%%            X - 37 + $A
-%%    end.
-%%
-%%auto_increment_integer(Min, Max) ->
-%%    Diff = Max - Min,
-%%    rand:uniform(Diff) + Min.
-
 -spec field_type(DB :: sql_bridge:db(),
                      Table :: sql_bridge:table(),
                      Field :: sql_bridge:field()) -> undefined | sql_bridge:field_type().
@@ -306,7 +252,7 @@ field_type(DB, Table, Field) ->
            <<" and table_name=">>, T2,
            <<" and column_name=">>, T3],
     Res = sql_bridge:fffr(SQL, [DB, Table, Field]),
-    io:format("MySQL - Field Type (~p, ~p, ~p): ~p~n", [DB, Table, Field, Res]),
+    %io:format("MySQL - Field Type (~p, ~p, ~p): ~p~n", [DB, Table, Field, Res]),
     case Res of
         not_found ->
             undefined;

@@ -7,7 +7,6 @@ generate(Table) ->
     generate(Table, Field).
 
 generate(Table, Field) ->
-    io:format("(generate) Primary Key: ~p -> ~p~n", [Table, Field]),
     ID = case sql_bridge:field_type(Table, Field) of
         {uuid, _} ->
             auto_increment_uuid();
@@ -16,7 +15,6 @@ generate(Table, Field) ->
         {integer, {Min, Max}} ->
             auto_increment_integer(Min, Max)
     end,
-    io:format("Auto-Generated ID: ~p~n",[ID]),
     case sql_bridge:exists(Table, Field, ID) of
         true -> generate(Table, Field);
         false -> ID
