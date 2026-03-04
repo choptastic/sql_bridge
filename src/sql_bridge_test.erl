@@ -1,6 +1,7 @@
 %% vim: ts=4 sw=4 et sts=4
 -module(sql_bridge_test).
 -include_lib("eunit/include/eunit.hrl").
+-compile(nowarn_export_all).
 -compile(export_all).
 
 %% This is just a shortcut to prevent dialyzer throwing errors for the
@@ -197,7 +198,7 @@ test_trans(LookupPid, Quantity, CommitOrRollback) ->
         FirstSleep = 1000 - SleepModifier,
         SecondSleep = 1500 + SleepModifier,
         ThirdSleep = 2000,
-        StartTime = os:timestamp(),
+        %StartTime = os:timestamp(),
         ?TRANS_STATUS("Transaction Started. Sleeping for ~pms", [FirstSleep]),
         timer:sleep(FirstSleep),
         ?TRANS_STATUS("Woke up. Verifying fruit table is empty"),
