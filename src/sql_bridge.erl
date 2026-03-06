@@ -84,8 +84,10 @@ update(Table, KeyField, Obj) -> plu(Table, KeyField, Obj).
 insert(Table, Obj) -> pli(Table, Obj).
 
 -spec lookup() -> db().
-% @doc Checks the configuration for how we determine the database we're using
-% and returns the database.
+-doc """
+Checks the configuration for how we determine the database we're using
+and returns the database.
+""".
 lookup() ->
     case ?LOOKUP of
         A when is_atom(A) -> A;
@@ -94,12 +96,14 @@ lookup() ->
     end.
 
 -spec db() -> db().
-% @doc Checks the process dictionary for an active database connection
-% associated with this process. If none, then look it up from configuration and
-% store it in the process dictionary. Note, this function does not actually
-% establish a connection, only returns the name of the database that either is
-% associated with the process or that *should* be associated with the process
-% based on some criteria (for example, checking host headers)
+-doc """
+Checks the process dictionary for an active database connection
+associated with this process. If none, then look it up from configuration and
+store it in the process dictionary. Note, this function does not actually
+establish a connection, only returns the name of the database that either is
+associated with the process or that *should* be associated with the process
+based on some criteria (for example, checking host headers)
+""".
 db() ->
     case erlang:get(?DB) of
         undefined ->
@@ -130,13 +134,13 @@ log_for_time(Secs) ->
     end).
 
 -spec db(db()) -> db().
-% @doc Stores the database name in the process dictionary
+-doc "Stores the database name in the process dictionary".
 db(DB) ->
     erlang:put(?DB,DB),
     DB.
 
 -spec start() -> ok.
-% @doc starts the actual database driver, if necessary
+-doc "starts the actual database driver, if necessary".
 start() ->
     {ok, _} = application:ensure_all_started(sql_bridge),
     build_stringify(),
@@ -153,12 +157,12 @@ build_alias() ->
     ok = sql_bridge_alias:build(?ALIAS).
 
 -spec connect() -> db().
-% @doc establishes a connection to the appropriate database.
+-doc "Establishes a connection to the appropriate database.".
 connect() ->
     connect(db()).
 
 -spec connect(db()) -> db().
-% @doc establishes a connection to the named database.
+-doc "Establishes a connection to the named database.".
 connect(DB) when is_atom(DB) ->
     [User, Pass, Host, Port] = lists:map(fun(X) -> 
         case X of 
@@ -251,7 +255,7 @@ ensure_proplist(PL) when is_list(PL) ->
     PL.
 
 -spec filter_fields(Table :: table(), PropList :: proplist()) -> proplist().
-% @doc removes from Proplist any fields that aren't found in the table "Table"
+-doc "Removes from Proplist any fields that aren't found in the table 'Table'".
 filter_fields(Table,PropList) ->
     TableFields = table_fields(Table),
     [{K,V} || {K,V} <- PropList,lists:member(sql_bridge_utils:to_atom(K),TableFields)].
@@ -272,70 +276,75 @@ rollback() ->
     ?ADAPTER:rollback_transaction(db()).
 
 -spec q(Q :: sql()) -> [list()].
-%% @doc Run the SQL query `Q` and return a list of lists, with each inner list
-%% representing one record in the return set.
+-doc """
+Run the SQL query `Q` and return a list of lists, with each inner list
+representing one record in the return set.
+""".
 q(Q) ->
     Db = db(),
     db_q(list,Db,Q).
 
 -spec q(Q :: sql(), ParamList :: [value()]) -> [list()].
-%% @doc Run the SQL query `Q`, with the the values of `ParamList` safely
-%% injected into the query replacing any instances of question marks (`?`),
-%% with each inner list representing one record in the return set (same as q/1).
+-doc """
+Run the SQL query `Q`, with the the values of `ParamList` safely
+injected into the query replacing any instances of question marks (`?`),
+with each inner list representing one record in the return set (same as q/1).
+""".
+
 q(Q,ParamList) ->
     Db = db(),
     db_q(list,Db,Q,ParamList).
 
 -spec dq(Q :: sql()) -> [t_dict()].
-%% @doc Same as q/1, but returns a list of dicts.
+-doc "Same as q/1, but returns a list of dicts.".
 dq(Q) ->
     Db = db(),
     db_q(dict,Db,Q).
 
 -spec dq(Q :: sql(), ParamList :: [value()]) -> [t_dict()].
-%% @doc Same as q/2, but returns a list of dicts
+-doc "Same as q/2, but returns a list of dicts".
 dq(Q,ParamList) ->
     Db = db(),
     db_q(dict,Db,Q,ParamList).
 
 -spec mq(Q :: sql()) -> [map()].
-%% @doc Same as d1/, but returns a list of maps
+-doc "Same as d1/, but returns a list of maps".
 mq(Q) ->
     Db = db(),
     db_q(map, Db, Q).
 
 -spec mq(Q :: sql(), ParamList :: [value()]) -> [map()].
-%% @doc Same as d1/, but returns a list of maps
+-doc "Same as d1/, but returns a list of maps".
 mq(Q, ParamList) ->
     Db = db(),
     db_q(map, Db, Q, ParamList).
 
 -spec tq(Q :: sql()) -> [tuple()].
-%% @doc Same as q/1, but returns a list of tuples
+-doc "Same as q/1, but returns a list of tuples".
 tq(Q) ->
     Db = db(),
     db_q(tuple,Db,Q).
 
 -spec tq(Q :: sql(), ParamList :: [value()]) -> [tuple()].
-%% @doc Same as q/2, but returns a list of tuples
+-doc "Same as q/2, but returns a list of tuples".
 tq(Q,ParamList) ->
     Db = db(),
     db_q(tuple,Db,Q,ParamList).
 
 -spec plq(Q :: sql()) -> [proplist()].
-%% @doc Same as q/1, but returns a list of proplists
+-doc "Same as q/1, but returns a list of proplists".
 plq(Q) ->
     Db = db(), db_q(proplist,Db,Q).
 
 -spec plq(Q :: sql(), ParamList :: [value()]) -> [proplist()].
-%% @doc Same as q/2, but returns a list of proplists
+-doc "Same as q/2, but returns a list of proplists".
 plq(Q,ParamList) ->
     Db = db(),
     db_q(proplist,Db,Q,ParamList).
 
 
 -spec pli(Table :: table(), Data :: proplist_or_map()) -> insert_id().
-%% @doc Inserts a proplist into the table
+-doc "Inserts a proplist into the table.".
 pli(Table,PropList) when is_atom(Table) ->
     pli(atom_to_list(Table),PropList);
 pli(Table,InitPropList0) ->
@@ -350,7 +359,7 @@ pli(Table,InitPropList0) ->
     qi(SQL, Values).
 
 -spec plu(Table :: table(), PropList :: proplist_or_map()) -> affected_rows().
-%% @doc Updates a row from the proplist based on the primary_key in the Table
+-doc "Updates a row from the proplist based on the primary_key in the Table".
 plu(Table,PropList) when is_atom(Table) ->
     plu(atom_to_list(Table),PropList);
 plu(Table,PropList0) ->
@@ -359,7 +368,7 @@ plu(Table,PropList0) ->
     plu(Table,KeyField,PropList).
 
 -spec plu(Table :: table(), KeyField :: field(), PropList :: proplist()) -> affected_rows().
-%% @doc Update a row from proplist based on the Keyfield `Keyfield` on provided Table
+-doc "Update a row from proplist based on the Keyfield `Keyfield` on provided Table".
 plu(Table,KeyField,InitPropList) when is_atom(Table) ->
     plu(atom_to_list(Table),KeyField,InitPropList);
 plu(Table,KeyField,InitPropList) ->
@@ -382,9 +391,11 @@ plu(Table,KeyField,InitPropList) ->
 -spec db_q(Type :: return_type(), Db :: db(), Q :: sql()) ->  insert_id() 
                                                             | affected_rows()
                                                             | [list() | t_dict() | tuple() | proplist()].
-%% @doc Query from the specified Database pool (Db) This will connect to the
-%% specified Database Pool Type must be atoms: proplist, dict, list, or tuple
-%% Type can also be atom 'insert' in which case, it'll return the insert value
+-doc """
+Query from the specified Database pool (Db) This will connect to the specified
+Database Pool Type must be atoms: proplist, dict, list, or tuple Type can also
+be atom 'insert' in which case, it'll return the insert value
+""".
 db_q(Type,Db,Q) ->
     db_q(Type, Db, Q, []).
 
@@ -392,7 +403,7 @@ db_q(Type,Db,Q) ->
            Q :: sql(), ParamList :: [value()]) ->   insert_id() 
                                                   | affected_rows()
                                                   | [list() | t_dict() | tuple() | proplist()].
-%% @doc Same as db_q/3, but ParamList is safely inserted into the Query
+-doc "Same as db_q/3, but ParamList is safely inserted into the Query".
 db_q(Type,Db,Q,ParamList) ->
     ParamList2 = sanitize_params(ParamList),
     db_q(Type, Db, Q, ParamList2, ?CONNECTION_ATTEMPTS).
@@ -424,8 +435,10 @@ db_q(Type, Db, Q, ParamList, RemainingAttempts) ->
     Return.
 
 -spec qi(Q :: sql()) -> insert_id().
-%% @doc A special Query function just for inserting.
-%% Inserts the record(s) and returns the insert_id
+-doc """
+A special Query function just for inserting. Inserts the record(s) and returns
+the insert_id
+""".
 qi(Q) ->
     Db = db(),
     db_q(insert,Db,Q).
@@ -446,7 +459,7 @@ qu(Q, ParamList) ->
     db_q(update, Db, Q, ParamList).
 
 -spec plfr(Q :: sql(), ParamList :: [value()]) -> proplist() | not_found.
-%% @doc fr = First Record
+-doc "Get first record as a proplist".
 plfr(Q,ParamList) ->
     case plq(Q,ParamList) of
         [] -> not_found;
@@ -458,7 +471,7 @@ plfr(Q) ->
     plfr(Q,[]).
 
 -spec mfr(Q :: sql(), ParamList :: [value()]) -> map() | not_found.
-%% @doc fr = First Record
+-doc "Get the first record as a map".
 mfr(Q,ParamList) ->
     case mq(Q,ParamList) of
         [] -> not_found;
@@ -470,6 +483,7 @@ mfr(Q) ->
     mfr(Q,[]).
 
 -spec tfr(Q :: sql()) -> tuple() | not_found.
+-doc "Get the first record as a tuple.".
 tfr(Q) ->
     tfr(Q,[]).
 
@@ -481,6 +495,7 @@ tfr(Q,ParamList) ->
     end.
 
 -spec dfr(Q :: sql()) -> t_dict() | not_found.
+-doc "Get the first record as a dict".
 dfr(Q) ->
     dfr(Q, []).
 
@@ -493,6 +508,7 @@ dfr(Q, ParamList) ->
 
 %% fr = First Record
 -spec fr(Q :: sql(), ParamList :: [value()]) -> list() | not_found.
+-doc "Get the first record as a list of values.".
 fr(Q,ParamList) ->
     case q(Q,ParamList) of
         [] -> not_found;
@@ -504,7 +520,7 @@ fr(Q) ->
     fr(Q,[]).
 
 -spec fffr(Q :: sql(), ParamList :: [value()]) -> value() | not_found.
-%% @doc Get First Field of First record
+-doc "Get First Field of First record".
 fffr(Q,ParamList) ->
     case fr(Q,ParamList) of
         not_found -> not_found;
@@ -515,8 +531,8 @@ fffr(Q,ParamList) ->
 fffr(Q) ->
     fffr(Q,[]).
 
-%% First Field List
 -spec ffl(Q :: sql(), ParamList :: [value()]) -> [value()].
+-doc "Return a list of the values of the first field from the query.".
 ffl(Q,ParamList) ->
     [First || [First | _ ] <- q(Q,ParamList)].
 
@@ -587,9 +603,10 @@ field_type(Table0, Field) ->
     ?ADAPTER:field_type(DB, Table, Field).
 
 -spec qexists(Q :: sql()) -> boolean().
-%% @doc Existance query, just returns true if the query Q returns anything
-%% other than an empty set.
-%% TODO: Check for "limit" clause and or maybe just rely on user?
+-doc """
+Existance query, just returns true if the query Q returns anything
+other than an empty set.
+""".
 qexists(Q) ->
     qexists(Q,[]).
 
@@ -604,14 +621,14 @@ qexists(Q,ParamList) ->
     end.
 
 -spec exists(Table :: table(), IDValue :: value()) -> boolean().
-%% @doc Returns true if Table has a record representing Key Value IDValue
+-doc "Returns true if Table has a record representing Key Value IDValue".
 exists(Table, IDValue) when is_atom(Table) ->
     exists(atom_to_list(Table), IDValue);
 exists(Table, IDValue) when is_list(Table) ->
     exists(Table, primary_key(Table), IDValue).
 
 -spec exists(Table :: table(), KeyField :: field(), IDValue :: value()) -> boolean().
-%% @doc Returns true if Table has a record where KeyField = IDValue
+-doc "Returns true if Table has a record where KeyField = IDValue".
 exists(Table, KeyField, IDValue) ->
     case field(Table, KeyField, KeyField, IDValue) of
         not_found -> false;
@@ -619,10 +636,12 @@ exists(Table, KeyField, IDValue) ->
     end.
 
 -spec field(Table :: table(), Field :: field(), IDField :: field(), IDValue :: value()) -> value() | not_found.
-%% @doc retrieves the value of Field from Table where the value of IDField ==
-%% IDValue (e.g.: Select 'Field' from 'Table' where 'IDField'='IDValue'). If
-%% the query returns more than one record, only the first record's value is
-%% returned.
+-doc """
+Retrieves the value of Field from Table where the value of `IDField == IDValue`
+(e.g.: Select 'Field' from 'Table' where 'IDField'='IDValue').
+If the query returns more than one record, only the first record's value is
+returned.
+""".
 field(Table,Field,IDField,IDValue) when is_atom(Table) ->
     field(atom_to_list(Table),Field,IDField,IDValue);
 field(Table,Field,IDField,IDValue) when is_atom(Field) ->
@@ -634,14 +653,14 @@ field(Table,Field,IDField,IDValue) ->
     fffr(["select ",Field," from ",Table," where ",IDField,"= ",Token],[IDValue]).
 
 -spec field(Table :: table(), Field :: field(), Value :: value()) -> value() | not_found.
-%% @doc This does the same as above, but determines the primary_key
+-doc "This does the same as above, but determines the primary_key".
 field(Table,Field,IDValue) when is_atom(Table) ->
     field(atom_to_list(Table),Field,IDValue);
 field(Table,Field,IDValue) ->
     field(Table,Field,primary_key(Table),IDValue).
 
 -spec delete(Table :: table(), ID :: value()) -> affected_rows().
-%% @doc Deletes rows from Table where the primary_key = ID
+-doc "Deletes rows from Table where the primary_key = ID".
 delete(Table,ID) when is_atom(Table) ->
     delete(atom_to_list(Table),ID);
 delete(Table,ID) when is_list(Table) ->
@@ -649,7 +668,7 @@ delete(Table,ID) when is_list(Table) ->
     delete(Table,KeyField,ID).
 
 -spec delete(Table :: table(), KeyField :: field(), ID :: value()) -> affected_rows().
-%% @doc Deletes from Table where KeyField = ID
+-doc "Deletes from Table where KeyField = ID".
 delete(Table,KeyField,ID) when is_atom(Table) ->
     delete(atom_to_list(Table),KeyField,ID);
 delete(Table,KeyField,ID) when is_atom(KeyField) ->
@@ -676,8 +695,11 @@ sanitize_params(L) ->
 
 
 -spec encode(V :: any()) -> binary().
-%% @doc Safely encodes text for insertion into a query.  Replaces the atoms
-%% 'true' and 'false' with <<"1">> and <<"0">> respectively.
+-doc """
+Safely encodes text for insertion into a query.  Replaces the atoms
+'true' and 'false' with <<"1">> and <<"0">> respectively.
+""".
+
 encode(Other) ->
     ?ADAPTER:encode(sanitize(Other)).
 
@@ -687,8 +709,10 @@ remove_wrapping_quotes(Str) ->
     lists:reverse(tl(lists:reverse(tl(Str)))).
 
 -spec encode64(T :: any()) -> string().
-%% @doc Encodes an erlang term into a base64 string which can be safely
-%% inserted into a text field 
+-doc """
+Encodes an erlang term into a base64 string which can be safely
+inserted into a text field
+""".
 encode64("") -> "";
 encode64(undefined) -> "";
 encode64(Data) ->
@@ -696,7 +720,9 @@ encode64(Data) ->
     %base64:encode_to_string(term_to_binary(Data)).
 
 -spec decode64(T :: any()) -> term().
-%% @doc Decodes a base64 string into the relevant erlang term.
+-doc """
+Decodes a base64 string into the relevant erlang term.
+""".
 decode64("") -> "";
 decode64(undefined) -> "";
 decode64(Data) when is_list(Data) ->
@@ -705,15 +731,19 @@ decode64(Data) when is_binary(Data) ->
     binary_to_term(b64fast:decode64(Data)).
 
 -spec encode_list(List :: [value()]) -> iolist().
-%% @doc Takes a list of items and encodes them for SQL then returns a
-%% comma-separated list of them.
+-doc """
+Takes a list of items and encodes them for SQL then returns a
+comma-separated list of them.
+""".
 encode_list(List) ->
     NewList = [encode(X) || X<-List],
     iolist_join(NewList,",").
 
 -spec dict_to_proplist(SrcDict :: t_dict(), AcceptableFields :: [field()]) -> proplist().
-%% @doc Converts a dict to a proplist, filtering out any fields not found in
-%% AcceptableFields
+-doc """
+Converts a dict to a proplist, filtering out any fields not found in
+AcceptableFields
+""".
 dict_to_proplist(SrcDict,AcceptableFields) ->
     DictFilterFoldFun = fun(F,Dict) ->
         case dict:is_key(F,Dict) of
@@ -725,7 +755,9 @@ dict_to_proplist(SrcDict,AcceptableFields) ->
     dict:to_list(FilteredDict).
 
 -spec iolist_join(List :: [iolist()], Delimiter :: iolist()) -> iolist().
-%% @doc Joins a list of iolists together by a delimiter
+-doc """
+Joins a list of iolists together by a delimiter.
+""".
 iolist_join([], _) ->
     [];
 iolist_join([H], _) ->
@@ -739,9 +771,11 @@ to_bool(undefined) ->   false;
 to_bool(_) ->       true.
 
 -spec limit_clause(PerPage :: integer(), Page :: integer()) -> iolist().
-%% @doc Generates a SQL "LIMIT" clause based on the PerPage Criteria and the
-%% Page, calculating the offset according to the provided values. Useful when
-%% building something that breaks a list into pages in an interface.
+-doc """
+Generates a SQL "LIMIT" clause based on the PerPage Criteria and the
+Page, calculating the offset according to the provided values. Useful when
+building something that breaks a list into pages in an interface.
+""".
 limit_clause(PerPage, Page) when PerPage < 1 ->
     limit_clause(1, Page);
 limit_clause(PerPage, Page) ->
