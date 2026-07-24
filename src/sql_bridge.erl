@@ -83,11 +83,11 @@ update(Table, Obj) -> plu(Table, Obj).
 update(Table, KeyField, Obj) -> plu(Table, KeyField, Obj).
 insert(Table, Obj) -> pli(Table, Obj).
 
--spec lookup() -> db().
 -doc """
 Checks the configuration for how we determine the database we're using
 and returns the database.
 """.
+-spec lookup() -> db().
 lookup() ->
     case ?LOOKUP of
         A when is_atom(A) -> A;
@@ -95,7 +95,6 @@ lookup() ->
         {M, F} when is_atom(M), is_atom(F) -> M:F()
     end.
 
--spec db() -> db().
 -doc """
 Checks the process dictionary for an active database connection
 associated with this process. If none, then look it up from configuration and
@@ -104,6 +103,7 @@ establish a connection, only returns the name of the database that either is
 associated with the process or that *should* be associated with the process
 based on some criteria (for example, checking host headers)
 """.
+-spec db() -> db().
 db() ->
     case erlang:get(?DB) of
         undefined ->
@@ -133,14 +133,14 @@ log_for_time(Secs) ->
         disable_logging()
     end).
 
--spec db(db()) -> db().
 -doc "Stores the database name in the process dictionary".
+-spec db(db()) -> db().
 db(DB) ->
     erlang:put(?DB,DB),
     DB.
 
--spec start() -> ok.
 -doc "starts the actual database driver, if necessary".
+-spec start() -> ok.
 start() ->
     {ok, _} = application:ensure_all_started(sql_bridge),
     build_stringify(),
@@ -156,13 +156,13 @@ build_stringify() ->
 build_alias() ->
     ok = sql_bridge_alias:build(?ALIAS).
 
--spec connect() -> db().
 -doc "Establishes a connection to the appropriate database.".
+-spec connect() -> db().
 connect() ->
     connect(db()).
 
--spec connect(db()) -> db().
 -doc "Establishes a connection to the named database.".
+-spec connect(db()) -> db().
 connect(DB) when is_atom(DB) ->
     [User, Pass, Host, Port] = lists:map(fun(X) -> 
         case X of 
@@ -255,8 +255,8 @@ ensure_proplist(Map) when is_map(Map) ->
 ensure_proplist(PL) when is_list(PL) ->
     PL.
 
--spec filter_fields(Table :: table(), PropList :: proplist()) -> proplist().
 -doc "Removes from Proplist any fields that aren't found in the table 'Table'".
+-spec filter_fields(Table :: table(), PropList :: proplist()) -> proplist().
 filter_fields(Table,PropList) ->
     TableFields = table_fields(Table),
     [{K,V} || {K,V} <- PropList,lists:member(sql_bridge_utils:to_atom(K),TableFields)].
@@ -276,76 +276,75 @@ commit() ->
 rollback() ->
     ?ADAPTER:rollback_transaction(db()).
 
--spec q(Q :: sql()) -> [list()].
 -doc """
 Run the SQL query `Q` and return a list of lists, with each inner list
 representing one record in the return set.
 """.
+-spec q(Q :: sql()) -> [list()].
 q(Q) ->
     Db = db(),
     db_q(list,Db,Q).
 
--spec q(Q :: sql(), ParamList :: [value()]) -> [list()].
 -doc """
 Run the SQL query `Q`, with the the values of `ParamList` safely
 injected into the query replacing any instances of question marks (`?`),
 with each inner list representing one record in the return set (same as q/1).
 """.
-
+-spec q(Q :: sql(), ParamList :: [value()]) -> [list()].
 q(Q,ParamList) ->
     Db = db(),
     db_q(list,Db,Q,ParamList).
 
--spec dq(Q :: sql()) -> [t_dict()].
 -doc "Same as q/1, but returns a list of dicts.".
+-spec dq(Q :: sql()) -> [t_dict()].
 dq(Q) ->
     Db = db(),
     db_q(dict,Db,Q).
 
--spec dq(Q :: sql(), ParamList :: [value()]) -> [t_dict()].
 -doc "Same as q/2, but returns a list of dicts".
+-spec dq(Q :: sql(), ParamList :: [value()]) -> [t_dict()].
 dq(Q,ParamList) ->
     Db = db(),
     db_q(dict,Db,Q,ParamList).
 
--spec mq(Q :: sql()) -> [map()].
 -doc "Same as d1/, but returns a list of maps".
+-spec mq(Q :: sql()) -> [map()].
 mq(Q) ->
     Db = db(),
     db_q(map, Db, Q).
 
--spec mq(Q :: sql(), ParamList :: [value()]) -> [map()].
 -doc "Same as d1/, but returns a list of maps".
+-spec mq(Q :: sql(), ParamList :: [value()]) -> [map()].
 mq(Q, ParamList) ->
     Db = db(),
     db_q(map, Db, Q, ParamList).
 
--spec tq(Q :: sql()) -> [tuple()].
 -doc "Same as q/1, but returns a list of tuples".
+-spec tq(Q :: sql()) -> [tuple()].
 tq(Q) ->
     Db = db(),
     db_q(tuple,Db,Q).
 
--spec tq(Q :: sql(), ParamList :: [value()]) -> [tuple()].
 -doc "Same as q/2, but returns a list of tuples".
+-spec tq(Q :: sql(), ParamList :: [value()]) -> [tuple()].
 tq(Q,ParamList) ->
     Db = db(),
     db_q(tuple,Db,Q,ParamList).
 
--spec plq(Q :: sql()) -> [proplist()].
 -doc "Same as q/1, but returns a list of proplists".
+-spec plq(Q :: sql()) -> [proplist()].
 plq(Q) ->
     Db = db(), db_q(proplist,Db,Q).
 
--spec plq(Q :: sql(), ParamList :: [value()]) -> [proplist()].
 -doc "Same as q/2, but returns a list of proplists".
+-spec plq(Q :: sql(), ParamList :: [value()]) -> [proplist()].
 plq(Q,ParamList) ->
     Db = db(),
     db_q(proplist,Db,Q,ParamList).
 
 
--spec pli(Table :: table(), Data :: proplist_or_map()) -> insert_id().
 -doc "Inserts a proplist into the table.".
+-spec pli(Table :: table(), Data :: proplist_or_map()) -> insert_id().
 pli(Table,PropList) when is_atom(Table) ->
     pli(atom_to_list(Table),PropList);
 pli(Table,InitPropList0) ->
@@ -359,8 +358,8 @@ pli(Table,InitPropList0) ->
     SQL = ["insert into ",Table,"(",Fields,") values(",PlaceholderString,");"],
     qi(SQL, Values).
 
--spec plu(Table :: table(), PropList :: proplist_or_map()) -> affected_rows().
 -doc "Updates a row from the proplist based on the primary_key in the Table".
+-spec plu(Table :: table(), PropList :: proplist_or_map()) -> affected_rows().
 plu(Table,PropList) when is_atom(Table) ->
     plu(atom_to_list(Table),PropList);
 plu(Table,PropList0) ->
@@ -368,8 +367,8 @@ plu(Table,PropList0) ->
     KeyField = primary_key(Table),
     plu(Table,KeyField,PropList).
 
--spec plu(Table :: table(), KeyField :: field(), PropList :: proplist()) -> affected_rows().
 -doc "Update a row from proplist based on the Keyfield `Keyfield` on provided Table".
+-spec plu(Table :: table(), KeyField :: field(), PropList :: proplist()) -> affected_rows().
 plu(Table,KeyField,InitPropList) when is_atom(Table) ->
     plu(atom_to_list(Table),KeyField,InitPropList);
 plu(Table,KeyField,InitPropList) ->
@@ -389,22 +388,23 @@ plu(Table,KeyField,InitPropList) ->
     q(SQL, Params),
     KeyValue.
 
--spec db_q(Type :: return_type(), Db :: db(), Q :: sql()) ->  insert_id() 
-                                                            | affected_rows()
-                                                            | [list() | t_dict() | tuple() | proplist()].
 -doc """
 Query from the specified Database pool (Db) This will connect to the specified
 Database Pool Type must be atoms: proplist, dict, list, or tuple Type can also
 be atom 'insert' in which case, it'll return the insert value
 """.
+-spec db_q(Type :: return_type(), Db :: db(),
+           Q :: sql()) ->  insert_id() 
+                         | affected_rows()
+                         | [list() | t_dict() | tuple() | proplist()].
 db_q(Type,Db,Q) ->
     db_q(Type, Db, Q, []).
 
+-doc "Same as db_q/3, but ParamList is safely inserted into the Query".
 -spec db_q(Type :: return_type(), Db :: db(),
            Q :: sql(), ParamList :: [value()]) ->   insert_id() 
                                                   | affected_rows()
                                                   | [list() | t_dict() | tuple() | proplist()].
--doc "Same as db_q/3, but ParamList is safely inserted into the Query".
 db_q(Type,Db,Q,ParamList) ->
     ParamList2 = sanitize_params(ParamList),
     db_q(Type, Db, Q, ParamList2, ?CONNECTION_ATTEMPTS).
@@ -435,11 +435,11 @@ db_q(Type, Db, Q, ParamList, RemainingAttempts) ->
     end,
     Return.
 
--spec qi(Q :: sql()) -> insert_id().
 -doc """
 A special Query function just for inserting. Inserts the record(s) and returns
 the insert_id
 """.
+-spec qi(Q :: sql()) -> insert_id().
 qi(Q) ->
     Db = db(),
     db_q(insert,Db,Q).
@@ -483,8 +483,8 @@ mfr(Q,ParamList) ->
 mfr(Q) ->
     mfr(Q,[]).
 
--spec tfr(Q :: sql()) -> tuple() | not_found.
 -doc "Get the first record as a tuple.".
+-spec tfr(Q :: sql()) -> tuple() | not_found.
 tfr(Q) ->
     tfr(Q,[]).
 
@@ -495,8 +495,8 @@ tfr(Q,ParamList) ->
         [First|_] -> First
     end.
 
--spec dfr(Q :: sql()) -> t_dict() | not_found.
 -doc "Get the first record as a dict".
+-spec dfr(Q :: sql()) -> t_dict() | not_found.
 dfr(Q) ->
     dfr(Q, []).
 
@@ -508,8 +508,8 @@ dfr(Q, ParamList) ->
     end.
 
 %% fr = First Record
--spec fr(Q :: sql(), ParamList :: [value()]) -> list() | not_found.
 -doc "Get the first record as a list of values.".
+-spec fr(Q :: sql(), ParamList :: [value()]) -> list() | not_found.
 fr(Q,ParamList) ->
     case q(Q,ParamList) of
         [] -> not_found;
@@ -532,8 +532,8 @@ fffr(Q,ParamList) ->
 fffr(Q) ->
     fffr(Q,[]).
 
--spec ffl(Q :: sql(), ParamList :: [value()]) -> [value()].
 -doc "Return a list of the values of the first field from the query.".
+-spec ffl(Q :: sql(), ParamList :: [value()]) -> [value()].
 ffl(Q,ParamList) ->
     [First || [First | _ ] <- q(Q,ParamList)].
 
@@ -603,11 +603,11 @@ field_type(Table0, Field) ->
     {DB, Table} = table_and_db(Table0),
     ?ADAPTER:field_type(DB, Table, Field).
 
--spec qexists(Q :: sql()) -> boolean().
 -doc """
 Existance query, just returns true if the query Q returns anything
 other than an empty set.
 """.
+-spec qexists(Q :: sql()) -> boolean().
 qexists(Q) ->
     qexists(Q,[]).
 
@@ -621,28 +621,28 @@ qexists(Q,ParamList) ->
             true
     end.
 
--spec exists(Table :: table(), IDValue :: value()) -> boolean().
 -doc "Returns true if Table has a record representing Key Value IDValue".
+-spec exists(Table :: table(), IDValue :: value()) -> boolean().
 exists(Table, IDValue) when is_atom(Table) ->
     exists(atom_to_list(Table), IDValue);
 exists(Table, IDValue) when is_list(Table) ->
     exists(Table, primary_key(Table), IDValue).
 
--spec exists(Table :: table(), KeyField :: field(), IDValue :: value()) -> boolean().
 -doc "Returns true if Table has a record where KeyField = IDValue".
+-spec exists(Table :: table(), KeyField :: field(), IDValue :: value()) -> boolean().
 exists(Table, KeyField, IDValue) ->
     case field(Table, KeyField, KeyField, IDValue) of
         not_found -> false;
         _ -> true
     end.
 
--spec field(Table :: table(), Field :: field(), IDField :: field(), IDValue :: value()) -> value() | not_found.
 -doc """
 Retrieves the value of Field from Table where the value of `IDField == IDValue`
 (e.g.: Select 'Field' from 'Table' where 'IDField'='IDValue').
 If the query returns more than one record, only the first record's value is
 returned.
 """.
+-spec field(Table :: table(), Field :: field(), IDField :: field(), IDValue :: value()) -> value() | not_found.
 field(Table,Field,IDField,IDValue) when is_atom(Table) ->
     field(atom_to_list(Table),Field,IDField,IDValue);
 field(Table,Field,IDField,IDValue) when is_atom(Field) ->
@@ -653,23 +653,23 @@ field(Table,Field,IDField,IDValue) ->
     Token = sql_bridge_utils:create_placeholder(1),
     fffr(["select ",Field," from ",Table," where ",IDField,"= ",Token],[IDValue]).
 
--spec field(Table :: table(), Field :: field(), Value :: value()) -> value() | not_found.
 -doc "This does the same as above, but determines the primary_key".
+-spec field(Table :: table(), Field :: field(), Value :: value()) -> value() | not_found.
 field(Table,Field,IDValue) when is_atom(Table) ->
     field(atom_to_list(Table),Field,IDValue);
 field(Table,Field,IDValue) ->
     field(Table,Field,primary_key(Table),IDValue).
 
--spec delete(Table :: table(), ID :: value()) -> affected_rows().
 -doc "Deletes rows from Table where the primary_key = ID".
+-spec delete(Table :: table(), ID :: value()) -> affected_rows().
 delete(Table,ID) when is_atom(Table) ->
     delete(atom_to_list(Table),ID);
 delete(Table,ID) when is_list(Table) ->
     KeyField = primary_key(Table),
     delete(Table,KeyField,ID).
 
--spec delete(Table :: table(), KeyField :: field(), ID :: value()) -> affected_rows().
 -doc "Deletes from Table where KeyField = ID".
+-spec delete(Table :: table(), KeyField :: field(), ID :: value()) -> affected_rows().
 delete(Table,KeyField,ID) when is_atom(Table) ->
     delete(atom_to_list(Table),KeyField,ID);
 delete(Table,KeyField,ID) when is_atom(KeyField) ->
@@ -695,11 +695,9 @@ sanitize_params(L) ->
     [sanitize(X) || X <- L].
 
 
+-doc "Safely encodes text for insertion into a query.  Replaces the atoms
+'true' and 'false' with <<\"1\">> and <<\"0\">> respectively.".
 -spec encode(V :: any()) -> binary().
--doc """
-Safely encodes text for insertion into a query.  Replaces the atoms
-'true' and 'false' with <<"1">> and <<"0">> respectively.
-""".
 
 encode(Other) ->
     ?ADAPTER:encode(sanitize(Other)).
@@ -709,21 +707,21 @@ remove_wrapping_quotes(Bin) when is_binary(Bin) ->
 remove_wrapping_quotes(Str) ->
     lists:reverse(tl(lists:reverse(tl(Str)))).
 
--spec encode64(T :: any()) -> string().
 -doc """
 Encodes an erlang term into a base64 string which can be safely
 inserted into a text field
 """.
+-spec encode64(T :: any()) -> string().
 encode64("") -> "";
 encode64(undefined) -> "";
 encode64(Data) ->
     binary_to_list(b64fast:encode64(term_to_binary(Data))).
     %base64:encode_to_string(term_to_binary(Data)).
 
--spec decode64(T :: any()) -> term().
 -doc """
 Decodes a base64 string into the relevant erlang term.
 """.
+-spec decode64(T :: any()) -> term().
 decode64("") -> "";
 decode64(undefined) -> "";
 decode64(Data) when is_list(Data) ->
@@ -731,20 +729,20 @@ decode64(Data) when is_list(Data) ->
 decode64(Data) when is_binary(Data) ->
     binary_to_term(b64fast:decode64(Data)).
 
--spec encode_list(List :: [value()]) -> iolist().
 -doc """
 Takes a list of items and encodes them for SQL then returns a
 comma-separated list of them.
 """.
+-spec encode_list(List :: [value()]) -> iolist().
 encode_list(List) ->
     NewList = [encode(X) || X<-List],
     iolist_join(NewList,",").
 
--spec dict_to_proplist(SrcDict :: t_dict(), AcceptableFields :: [field()]) -> proplist().
 -doc """
 Converts a dict to a proplist, filtering out any fields not found in
 AcceptableFields
 """.
+-spec dict_to_proplist(SrcDict :: t_dict(), AcceptableFields :: [field()]) -> proplist().
 dict_to_proplist(SrcDict,AcceptableFields) ->
     DictFilterFoldFun = fun(F,Dict) ->
         case dict:is_key(F,Dict) of
@@ -755,10 +753,10 @@ dict_to_proplist(SrcDict,AcceptableFields) ->
     FilteredDict = lists:foldl(DictFilterFoldFun,SrcDict,AcceptableFields),
     dict:to_list(FilteredDict).
 
--spec iolist_join(List :: [iolist()], Delimiter :: iolist()) -> iolist().
 -doc """
 Joins a list of iolists together by a delimiter.
 """.
+-spec iolist_join(List :: [iolist()], Delimiter :: iolist()) -> iolist().
 iolist_join([], _) ->
     [];
 iolist_join([H], _) ->
@@ -771,12 +769,12 @@ to_bool(0) ->       false;
 to_bool(undefined) ->   false;
 to_bool(_) ->       true.
 
--spec limit_clause(PerPage :: integer(), Page :: integer()) -> iolist().
 -doc """
-Generates a SQL "LIMIT" clause based on the PerPage Criteria and the
+Generates a SQL 'LIMIT' clause based on the PerPage Criteria and the
 Page, calculating the offset according to the provided values. Useful when
 building something that breaks a list into pages in an interface.
 """.
+-spec limit_clause(PerPage :: integer(), Page :: integer()) -> iolist().
 limit_clause(PerPage, Page) when PerPage < 1 ->
     limit_clause(1, Page);
 limit_clause(PerPage, Page) ->
