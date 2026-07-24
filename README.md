@@ -486,11 +486,11 @@ SQL_Bridge supports transactions through two mechanisms:
 ## Key Generation (0.7.0+)
 
 If, for some reason, you aren't using your RDBMS's built-in key generation
-(like MySQL's `auto_increment` or Postgres' `SERIAL`), then you can use SQL
-Bridge's key generation system. ?By default, if the primary key field of a
+(MySQL's `auto_increment`, Postgres' `SERIAL`, etc.), then you can use SQL
+Bridge's key generation system. By default, if the primary key field of a
 table is not using a built-in key generation, then SQL Bridge can generate a
-key for you when saving via `db:save` or its sibling `db:insert` (it does not
-apply to `db:update` - hopefully for obvious reasons).
+key for you when inserting a row with via `db:save` or its sibling `db:insert`
+(it does not apply to `db:update` - hopefully for obvious reasons).
 
 The default implementation here can be found in
 [`sql_bridge_random_key_generator.erl`](https://github.com/choptastic/sql_bridge/blob/master/src/sql_bridge_random_key_generator.erl).
