@@ -1,5 +1,12 @@
 # SQL Bridge Changelog
 
+## 0.7.1 (2026-07-24)
+
+- Update docs to use the newer `-doc` spec
+- Added a conditional parse-transform to make the `-doc` spec backwards
+  compatible with older OTP versions
+- Expand documentation for the key generation feature
+
 ## 0.7.0 (2026-03-04)
 
 - The mysql-otp bridge has been reworked to use the mainline
