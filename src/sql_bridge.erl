@@ -2,6 +2,7 @@
 -module(sql_bridge).
 -compile(nowarn_export_all).
 -compile(export_all).
+-compile({parse_transform, doc_attr_compat}).
 -include("compat.hrl").
 
 -define(WARNING(QueryText,Msg), error_logger:info_msg("QUERY WARNING: ~p~n~nQuery:~n~p~n~n",[Msg,QueryText])).
