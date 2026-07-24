@@ -488,12 +488,45 @@ SQL_Bridge supports transactions through two mechanisms:
 If, for some reason, you aren't using your RDBMS's built-in key generation
 (MySQL's `auto_increment`, Postgres' `SERIAL`, etc.), then you can use SQL
 Bridge's key generation system. By default, if the primary key field of a
-table is not using a built-in key generation, then SQL Bridge can generate a
+table is not using a built-in key generation, then SQL Bridge will generate a
 key for you when inserting a row with via `db:save` or its sibling `db:insert`
 (it does not apply to `db:update` - hopefully for obvious reasons).
 
 The default implementation here can be found in
-[`sql_bridge_random_key_generator.erl`](https://github.com/choptastic/sql_bridge/blob/master/src/sql_bridge_random_key_generator.erl).
+[`sql_bridge_random_key_generator.erl`](https://github.com/choptastic/sql_bridge/blob/master/src/sql_bridge_random_key_generator.erl). You can also create your own key generator by editing the `key_generator_module_function` configuration key in your `app.config` or `sql_bridge.config`.
+
+For example, if you wanted the key to add the name of the table as a prefix to
+a random number. You could do something like this (warning: this is just an
+example, don't _actually_ do this in your code):
+
+```erlang
+-module(my_keygen).
+-export([generate/2]).
+
+generate(Table, Field) ->
+    ID = sql_bridge_utils:to_string(Table) ++ "_" ++ rand:uniform(1,9999999999999999999),
+    case sql_bridge:exists(Table, Field, ID) of
+        true -> generate(Table, Field);
+        false -> ID
+    end.
+
+```
+
+Then, in your `app.config` file, add this:
+
+```erlang
+[
+    {sql_bridge, [
+        ...
+        %% add this line below
+        {key_generator_module_function, {my_keygen, generate}}
+    ]}
+].
+```
+
+**Note:** The key generator function must take two arguments: `(Table, Field)`.
+
+**Also Note:** This functionality is experimental, and not transaction safe yet.
 
 ## Misc Utilities
 

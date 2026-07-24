@@ -10,11 +10,16 @@ jobs:
     strategy:
       matrix:
         include:
+          - os: ubuntu-26.04
+            mysql: "mariadb-12.3"
+            pg: "18"
+            otp_version: '29.x'
+            rebar3_version: "3.27.0"
           - os: ubuntu-24.04
             mysql: "mariadb-11.7"
             pg: "17"
             otp_version: '28.x'
-            rebar3_version: "3.24.0"
+            rebar3_version: "3.26.0"
           - os: ubuntu-24.04
             mysql: "mariadb-11.7"
             pg: "17"

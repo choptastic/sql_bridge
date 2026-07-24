@@ -235,6 +235,7 @@ save_(Table,KeyField,PropList) when is_list(Table) ->
                 false ->
                     %% if it's not auto_increment, then we will auto_increment
                     %% based on the settings
+                    %% TODO: Make this transaction safe
                     {_DB, Table2} = table_and_db(Table),
                     {AutoKeyMod, AutoKeyFun} = sql_bridge_utils:key_generator_function(),
                     KeyVal = AutoKeyMod:AutoKeyFun(Table2, KeyField),
