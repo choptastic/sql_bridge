@@ -15,16 +15,16 @@ jobs:
             pg: "18"
             otp_version: '29.x'
             rebar3_version: "3.27.0"
+          - os: ubuntu-26.04
+            mysql: "mysql-9.7"
+            pg: "17"
+            otp_version: '29.x'
+            rebar3_version: "3.27.0"
           - os: ubuntu-24.04
             mysql: "mariadb-11.7"
             pg: "17"
             otp_version: '28.x'
             rebar3_version: "3.26.0"
-          - os: ubuntu-24.04
-            mysql: "mariadb-11.7"
-            pg: "17"
-            otp_version: '27.x'
-            rebar3_version: "3.24.0"
           - os: ubuntu-24.04
             mysql: "mysql-9.2"
             pg: "17"
@@ -35,11 +35,6 @@ jobs:
             pg: "17"
             otp_version: '26.x'
             rebar3_version: "3.23.0"
-          - os: ubuntu-24.04
-            mysql: "mysql-8.4"
-            pg: "16"
-            otp_version: '26.x'
-            rebar3_version: "3.23.0"  
           - os: ubuntu-22.04
             mysql: "mariadb-11.1"
             pg: "16"
@@ -49,11 +44,6 @@ jobs:
             mysql: "mariadb-10.11"
             pg: "15"
             otp_version: '26.x'
-            rebar3_version: "3.22.1"
-          - os: ubuntu-22.04
-            mysql: "mariadb-10.11"
-            pg: "15"
-            otp_version: '25.x'
             rebar3_version: "3.22.1"
           - os: ubuntu-22.04
             mysql: "mariadb-10.2"
@@ -75,11 +65,6 @@ jobs:
             pg: "11"
             otp_version: '24.x'
             rebar3_version: "3.22.1"
-#          - os: ubuntu-20.04
-#            mysql: "mysql-5.6"
-#            pg: "14.9"
-#            otp_version: '23.x'
-#            rebar3_version: "3.19.0"
 
     steps:
       - name: Install OTP ${{matrix.otp_version}}
